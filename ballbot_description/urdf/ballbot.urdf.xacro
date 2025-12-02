@@ -233,4 +233,10 @@
   
   <xacro:collector_arm prefix="right" reflect="-1" angle="${arm_angle}" limit_lower="0.0" limit_upper="1.57"/>
 
+  <gazebo>
+    <plugin filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher">
+    </plugin>
+  </gazebo>
+  
 </robot>

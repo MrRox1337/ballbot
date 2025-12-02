@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="collector_bot">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ballbot">
 
   <xacro:property name="chassis_len" value="0.5"/>
   <xacro:property name="chassis_width" value="0.5"/>
@@ -21,7 +21,8 @@
   <xacro:property name="arm_width" value="0.05"/>
   <xacro:property name="arm_height" value="0.3"/>
   <xacro:property name="arm_mass" value="1.5"/>
-  <xacro:property name="arm_angle" value="0.523"/> <xacro:property name="flap_len" value="0.3"/>
+  <xacro:property name="arm_angle" value="0.523"/> 
+  <xacro:property name="flap_len" value="0.3"/>
   <xacro:property name="flap_width" value="0.02"/>
   <xacro:property name="flap_height" value="0.3"/>
   <xacro:property name="flap_mass" value="0.3"/>
@@ -139,7 +140,6 @@
     </joint>
   </xacro:macro>
 
-
   <link name="base_link">
     <visual>
       <origin xyz="0 0 ${chassis_z_offset}" rpy="0 0 0"/>
@@ -230,13 +230,52 @@
   </joint>
 
   <xacro:collector_arm prefix="left" reflect="1" angle="${arm_angle}" limit_lower="-1.57" limit_upper="0.0"/>
-  
   <xacro:collector_arm prefix="right" reflect="-1" angle="${arm_angle}" limit_lower="0.0" limit_upper="1.57"/>
 
+  <!-- ROS2 CONTROL -->
+  <ros2_control name="GazeboSimSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    
+    <!-- Wheels -->
+    <joint name="left_wheel_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <joint name="right_wheel_joint">
+      <command_interface name="velocity">
+        <param name="min">-10</param>
+        <param name="max">10</param>
+      </command_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="position"/>
+    </joint>
+
+    <!-- Flaps -->
+    <joint name="left_flap_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="right_flap_joint">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <!-- Gazebo Plugin for ros2_control -->
   <gazebo>
-    <plugin filename="gz-sim-joint-state-publisher-system"
-            name="gz::sim::systems::JointStatePublisher">
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find ballbot_control)/config/ballbot_controllers.yaml</parameters>
     </plugin>
   </gazebo>
-  
+
 </robot>

@@ -83,6 +83,8 @@
       <child link="${prefix}_wheel"/>
       <origin xyz="0 ${reflect * wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
+      <!-- CRITICAL FIX: Limits are required for Gazebo to apply effort -->
+      <limit effort="50.0" velocity="20.0"/>
     </joint>
   </xacro:macro>
 
@@ -139,6 +141,15 @@
       <limit lower="${limit_lower}" upper="${limit_upper}" effort="10.0" velocity="1.0"/>
     </joint>
   </xacro:macro>
+
+  <!-- FIX: Added base_footprint to silence KDL warning about root link inertia -->
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
 
   <link name="base_link">
     <visual>

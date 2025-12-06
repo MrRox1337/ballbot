@@ -11,12 +11,21 @@ controller_manager:
         flap_controller:
             type: forward_command_controller/ForwardCommandController
 
+# --- GAZEBO PID GAINS ---
+# This section is read by the gz_ros2_control plugin to allow position control
+# of the flaps. Without this, the default gain (0.1) is too weak.
+gz_ros2_control:
+    ros__parameters:
+        pid_gains:
+            left_flap_joint: { p: 200.0, i: 10.0, d: 5.0 }
+            right_flap_joint: { p: 200.0, i: 10.0, d: 5.0 }
+
 diff_drive_base_controller:
     ros__parameters:
         left_wheel_names: ["left_wheel_joint"]
         right_wheel_names: ["right_wheel_joint"]
 
-        wheel_separation: 0.54 # 2 * 0.27
+        wheel_separation: 0.54
         wheel_radius: 0.05
 
         wheel_separation_multiplier: 1.0
@@ -33,11 +42,10 @@ diff_drive_base_controller:
         enable_odom_tf: true
 
         cmd_vel_timeout: 0.5
-        # publish_limited_velocity: true
-        use_stamped_vel: false
+        use_stamped_vel: true
         velocity_rolling_window_size: 10
 
-        # Velocity and Acceleration limits
+        # Limits
         linear.x.has_velocity_limits: true
         linear.x.has_acceleration_limits: true
         linear.x.max_velocity: 2.0

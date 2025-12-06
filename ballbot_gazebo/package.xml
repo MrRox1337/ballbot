@@ -4,7 +4,7 @@
   <name>ballbot_gazebo</name>
   <version>0.0.0</version>
   <description>Gazebo Harmonic simulation launch files for the Ballbot.</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <maintainer email="amanrox97@gmail.com">Aman Mishra</maintainer>
   <license>Apache-2.0</license>
 
   <!-- Dependencies for Jazzy / Gazebo Harmonic -->

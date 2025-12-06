@@ -4,7 +4,7 @@
   <name>ballbot_bringup</name>
   <version>0.0.0</version>
   <description>Bringup package for the Ballbot robot, launching simulation and visualization.</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <maintainer email="amanrox97@gmail.com">Aman Mishra</maintainer>
   <license>Apache-2.0</license>
 
   <exec_depend>ballbot_description</exec_depend>

@@ -4,7 +4,7 @@
       <name>ballbot_description</name>
       <version>0.0.0</version>
       <description>URDF and assets for the Ballbot robot.</description>
-      <maintainer email="your.email@example.com">Your Name</maintainer>
+      <maintainer email="amanrox97@gmail.com">Aman Mishra</maintainer>
       <license>Apache-2.0</license>
 
       <!-- Dependencies for URDF/Xacro and visualization -->

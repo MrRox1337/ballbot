@@ -31,8 +31,8 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='Your Name',
-    maintainer_email='your.email@example.com',
+    maintainer='Aman Mishra',
+    maintainer_email='amanrox97@gmail.com',
     description='Contains the URDF and meshes for the Ballbot robot.',
     license='TODO: License declaration', # Update this!
     tests_require=['pytest'],

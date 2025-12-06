@@ -4,7 +4,7 @@
   <name>ballbot_control</name>
   <version>0.0.0</version>
   <description>ROS 2 Control configurations and launch files for Ballbot</description>
-  <maintainer email="your.email@example.com">Your Name</maintainer>
+  <maintainer email="amanrox97@gmail.com">Aman Mishra</maintainer>
   <license>Apache-2.0</license>
 
   <exec_depend>ros2_control</exec_depend>

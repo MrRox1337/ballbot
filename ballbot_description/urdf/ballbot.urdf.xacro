@@ -14,18 +14,18 @@
   <xacro:property name="wheel_z_offset" value="0.05"/>
 
   <xacro:property name="castor_radius" value="0.04"/>
-  <xacro:property name="castor_mass" value="0.2"/>
+  <xacro:property name="castor_mass" value="1.5"/>
   <xacro:property name="castor_x_offset" value="-0.2"/>
 
   <xacro:property name="arm_len" value="0.6"/>
   <xacro:property name="arm_width" value="0.05"/>
   <xacro:property name="arm_height" value="0.3"/>
-  <xacro:property name="arm_mass" value="1.5"/>
+  <xacro:property name="arm_mass" value="0.04"/>
   <xacro:property name="arm_angle" value="0.523"/> 
   <xacro:property name="flap_len" value="0.3"/>
   <xacro:property name="flap_width" value="0.02"/>
   <xacro:property name="flap_height" value="0.3"/>
-  <xacro:property name="flap_mass" value="0.3"/>
+  <xacro:property name="flap_mass" value="0.01"/>
 
   <material name="blue"><color rgba="0.0 0.0 0.8 1.0"/></material>
   <material name="black"><color rgba="0.0 0.0 0.0 1.0"/></material>
@@ -86,6 +86,13 @@
       <!-- CRITICAL FIX: Limits are required for Gazebo to apply effort -->
       <limit effort="50.0" velocity="20.0"/>
     </joint>
+
+    <gazebo reference="${prefix}_wheel">
+      <mu1>2.0</mu1>
+      <mu2>2.0</mu2>
+      <kp>1000000.0</kp>
+      <kd>100.0</kd>
+    </gazebo>
   </xacro:macro>
 
   <xacro:macro name="collector_arm" params="prefix reflect angle limit_lower limit_upper">
@@ -287,6 +294,11 @@
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters>$(find ballbot_control)/config/ballbot_controllers.yaml</parameters>
     </plugin>
+  </gazebo>
+
+  <gazebo reference="castor_wheel">
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
   </gazebo>
 
 </robot>

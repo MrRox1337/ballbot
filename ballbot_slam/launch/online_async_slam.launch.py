@@ -64,19 +64,19 @@ def generate_launch_description():
     )
 
     # --- 4. SLAM Toolbox Node ---
-    start_slam_toolbox_cmd = GroupAction(
-        actions=[
-            Node(
-                package='slam_toolbox',
-                executable='async_slam_toolbox_node',
-                name='slam_toolbox',
-                output='screen',
-                parameters=[
-                    slam_params_file,
-                    {'use_sim_time': use_sim_time}
-                ],
-            )
-        ]
+    # This brings up the node AND the lifecycle manager automatically
+    start_slam_toolbox_cmd = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('slam_toolbox'),
+                'launch',
+                'online_async_launch.py'
+            ])
+        ),
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'slam_params_file': slam_params_file
+        }.items()
     )
     
     # --- 5. Teleoperation ---

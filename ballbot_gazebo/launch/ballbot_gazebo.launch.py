@@ -38,7 +38,7 @@ def generate_launch_description():
 
     gz_args = PythonExpression([
         "'-r empty.sdf' if '", world_type, "' == 'empty' else ",
-        "'-r --render-engine ogre ' + '", assessment_world_path, "'"
+        "'-r --render-engine ogre2 ' + '", assessment_world_path, "'"
     ])
 
     # 5. Nodes and Launch Files

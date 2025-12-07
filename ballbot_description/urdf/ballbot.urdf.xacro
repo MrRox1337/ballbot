@@ -252,9 +252,10 @@
       <always_on>true</always_on>
       <visualize>true</visualize>
       <update_rate>10</update_rate>
-      <topic>scan</topic> <!-- Force topic name to /scan -->
+      <topic>/scan</topic> <!-- Force topic name to /scan -->
 
       <frame_id>lidar_link</frame_id>
+      <gz_frame_id>lidar_link</gz_frame_id>
 
       <ray>
         <scan>

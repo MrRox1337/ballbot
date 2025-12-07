@@ -1,0 +1,31 @@
+slam_toolbox:
+    ros__parameters:
+        # --- General ROS Parameters ---
+        use_sim_time: True
+
+        # --- Frame Definitions ---
+        # Matched to ballbot_controllers.yaml
+        odom_frame: odom
+        base_frame: base_footprint
+        map_frame: map
+
+        # --- Sensor Data ---
+        # Matched to the bridge created in the launch file
+        laser_topic: /scan
+        scan_queue_size: 10
+
+        # --- SLAM Algorithm Settings (Async) ---
+        mode: async
+        map_update_interval: 2.0
+        resolution: 0.05
+        min_laser_range: 0.1 # Adjust based on your lidar specs
+        max_laser_range: 10.0 # Adjust based on your lidar specs
+
+        # --- Loop Closure & Optimization ---
+        minimum_time_between_graph_updates: 1.0
+        transform_timeout: 0.5
+
+        # --- Space Clearing ---
+        # Helps clear dynamic obstacles (like the spheres if they move)
+        do_loop_closing: true
+        use_scan_matching: true

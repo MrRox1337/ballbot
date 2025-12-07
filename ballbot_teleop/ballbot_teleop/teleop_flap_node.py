@@ -4,7 +4,8 @@ import tty
 import select
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import Twist
+# CHANGED: Import TwistStamped instead of Twist
+from geometry_msgs.msg import TwistStamped
 from std_msgs.msg import Float64MultiArray
 
 msg = """
@@ -66,16 +67,13 @@ class BallbotTeleop(Node):
     def __init__(self):
         super().__init__('ballbot_teleop')
         
-        # Publisher for Diff Drive
-        # Note: We send standard Twist. Ensure 'use_stamped_vel: false' in controller config
-        # or use a remapper to stamp the message if strictly required.
+        # CHANGED: Publisher uses TwistStamped to match use_stamped_vel: true
         self.cmd_vel_pub = self.create_publisher(
-            Twist, 
+            TwistStamped, 
             '/diff_drive_base_controller/cmd_vel', 
             10
         )
         
-        # Publisher for Flaps
         self.flap_pub = self.create_publisher(
             Float64MultiArray, 
             '/flap_controller/commands', 
@@ -89,16 +87,22 @@ class BallbotTeleop(Node):
         self.status = 0
 
     def publish_twist(self):
-        twist = Twist()
-        twist.linear.x = self.x * self.speed
-        twist.angular.z = self.th * self.turn
-        self.cmd_vel_pub.publish(twist)
+        # CHANGED: Create TwistStamped message
+        twist_msg = TwistStamped()
+        
+        # Header is required for Stamped messages
+        twist_msg.header.stamp = self.get_clock().now().to_msg()
+        twist_msg.header.frame_id = 'base_footprint' 
+        
+        twist_msg.twist.linear.x = self.x * self.speed
+        twist_msg.twist.angular.z = self.th * self.turn
+        
+        self.cmd_vel_pub.publish(twist_msg)
 
     def publish_flaps(self, left_pos, right_pos):
         flap_msg = Float64MultiArray()
         flap_msg.data = [float(left_pos), float(right_pos)]
         self.flap_pub.publish(flap_msg)
-        # Using \r to overwrite line for clean UI
         sys.stdout.write(f"\rFlaps set to: Left={left_pos}, Right={right_pos}            \n")
         sys.stdout.flush()
 
@@ -115,12 +119,10 @@ def main():
         while True:
             key = getKey(settings)
             
-            # --- Drive Logic ---
             if key in moveBindings.keys():
                 node.x = float(moveBindings[key][0])
                 node.th = float(moveBindings[key][1])
                 
-            # --- Speed Adjustment Logic ---
             elif key in speedBindings.keys():
                 node.speed = node.speed * speedBindings[key][0]
                 node.turn = node.turn * speedBindings[key][1]
@@ -135,28 +137,25 @@ def main():
                 node.th = 0.0
                 print("\rSTOPPING                 ")
 
-            # --- Flap Logic ---
             elif key in flapBindings.keys():
                 left = flapBindings[key][0]
                 right = flapBindings[key][1]
                 node.publish_flaps(left, right)
 
-            # --- Quit ---
             elif key == '\x03': # Ctrl-C
                 break
                 
-            # Always publish twist
             node.publish_twist()
 
     except Exception as e:
         print(e)
 
     finally:
-        # Stop robot on exit
-        twist = Twist()
-        twist.linear.x = 0.0; twist.linear.y = 0.0; twist.linear.z = 0.0
-        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = 0.0
-        node.cmd_vel_pub.publish(twist)
+        # Stop robot on exit (using TwistStamped)
+        stop_msg = TwistStamped()
+        stop_msg.header.stamp = node.get_clock().now().to_msg()
+        stop_msg.header.frame_id = 'base_footprint'
+        node.cmd_vel_pub.publish(stop_msg)
 
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
         node.destroy_node()

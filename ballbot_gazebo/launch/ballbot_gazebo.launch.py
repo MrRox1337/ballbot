@@ -1,29 +1,49 @@
 import os
-from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
-    # 1. Path Configuration
-    ballbot_description_path = get_package_share_directory('ballbot_description')
-    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    # 1. Declare Arguments
+    world_type_arg = DeclareLaunchArgument(
+        'world_type',
+        default_value='empty',
+        description='Choose world: "empty" or "assessment"'
+    )
+    
+    world_type = LaunchConfiguration('world_type')
+
+    # 2. Path Configuration
+    pkg_ballbot_description = FindPackageShare('ballbot_description')
+    pkg_ros_gz_sim = FindPackageShare('ros_gz_sim')
+    pkg_assessment_world = FindPackageShare('assessment_world')
 
     # Path to the Xacro file
-    xacro_file = os.path.join(ballbot_description_path, 'urdf', 'ballbot.urdf.xacro')
+    xacro_file = PathJoinSubstitution([pkg_ballbot_description, 'urdf', 'ballbot.urdf.xacro'])
 
-    # 2. Process the Xacro file
-    # Run xacro to generate the URDF string
+    # 3. Process the Xacro file
     robot_description_config = Command(['xacro ', xacro_file])
     robot_description = {'robot_description': ParameterValue(robot_description_config, value_type=str)}
 
-    # 3. Nodes and Launch Files
+    # 4. Dynamic World Selection Logic
+    # If world_type is 'empty', use empty.sdf
+    # If world_type is 'assessment', use the full path to assessment.sdf AND add --render-engine ogre
+    assessment_world_path = PathJoinSubstitution([
+        pkg_assessment_world, 'worlds', 'assessment.sdf'
+    ])
+
+    gz_args = PythonExpression([
+        "'-r empty.sdf' if '", world_type, "' == 'empty' else ",
+        "'-r --render-engine ogre ' + '", assessment_world_path, "'"
+    ])
+
+    # 5. Nodes and Launch Files
 
     # A. Robot State Publisher
-    # Publishes static transforms and the model description
     node_robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -32,40 +52,39 @@ def generate_launch_description():
     )
 
     # B. Gazebo Harmonic Launch
-    # Uses the 'gz_sim.launch.py' provided by ros_gz_sim
-    # '-r' runs the simulation immediately, 'empty.sdf' loads a void world
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')
+            PathJoinSubstitution([pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'])
         ),
-        launch_arguments={'gz_args': '-r empty.sdf'}.items(),
+        launch_arguments={'gz_args': gz_args}.items(),
     )
 
     # C. Spawn Entity
-    # In Jazzy/Harmonic, we use the 'create' executable from ros_gz_sim
     spawn_entity = Node(
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-topic', 'robot_description', # Read entity XML from this topic
+            '-topic', 'robot_description', 
             '-name', 'ballbot',
-            '-z', '0.2' # Spawn higher to avoid floor clipping
+            '-z', '0.2',
+            '-x', '0.0',
+            '-y', '0.0'
         ],
         output='screen'
     )
 
     # D. ROS-Gazebo Bridge
-    # Essential for Jazzy! This bridges the Gazebo clock to ROS 2 /clock
-    # so that 'use_sim_time' works correctly.
     bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
-        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+        ],
         output='screen'
     )
 
-    # 4. Return Launch Description
     return LaunchDescription([
+        world_type_arg,
         node_robot_state_publisher,
         gazebo,
         spawn_entity,

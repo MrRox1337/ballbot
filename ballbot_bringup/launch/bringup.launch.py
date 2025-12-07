@@ -1,7 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -9,19 +8,32 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # 1. Define Package Paths
-    # CHANGE: Point to ballbot_control instead of ballbot_gazebo
     pkg_ballbot_control = FindPackageShare('ballbot_control') 
     pkg_ballbot_description = FindPackageShare('ballbot_description')
 
     # 2. Define Arguments
-    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time', 
+        default_value='true',
+        description='Use simulation (Gazebo) clock if true'
+    )
+    
+    world_type_arg = DeclareLaunchArgument(
+        'world_type',
+        default_value='empty',
+        description='Choose world: "empty" or "assessment"'
+    )
+
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    world_type = LaunchConfiguration('world_type')
 
     # 3. Include Control Launch (which includes Gazebo)
-    # CHANGE: This now launches Gazebo AND spawns the controllers
+    # CHANGED: Pass the world_type argument down
     control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([pkg_ballbot_control, 'launch', 'ballbot_control.launch.py'])
-        )
+        ),
+        launch_arguments={'world_type': world_type}.items()
     )
 
     # 4. RViz Node
@@ -39,6 +51,8 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        use_sim_time_arg,
+        world_type_arg,
         control_launch,
         rviz_node
     ])

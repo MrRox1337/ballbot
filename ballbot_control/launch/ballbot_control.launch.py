@@ -9,19 +9,29 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 
 def generate_launch_description():
     
-    # 1. Package Paths
+    # 1. Arguments
+    world_type_arg = DeclareLaunchArgument(
+        'world_type',
+        default_value='empty',
+        description='Choose world: "empty" or "assessment"'
+    )
+    
+    world_type = LaunchConfiguration('world_type')
+
+    # 2. Package Paths
     pkg_ballbot_gazebo = FindPackageShare('ballbot_gazebo')
     pkg_ballbot_control = FindPackageShare('ballbot_control')
 
-    # 2. Launch Simulation (Gazebo + Robot State Publisher + Clock Bridge)
+    # 3. Launch Simulation (Gazebo + Robot State Publisher + Clock Bridge)
+    # CHANGED: We pass the 'world_type' argument to the included launch file
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([pkg_ballbot_gazebo, 'launch', 'ballbot_gazebo.launch.py'])
-        )
+        ),
+        launch_arguments={'world_type': world_type}.items()
     )
 
-    # 3. Spawners
-    # Spawn Joint State Broadcaster (publishes /joint_states)
+    # 4. Spawners
     joint_state_broadcaster_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -29,7 +39,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Spawn Diff Drive Controller
     diff_drive_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -37,7 +46,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    # Spawn Flap Controller
     flap_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -45,9 +53,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Delay Start
-    # Ensure controllers start ONLY after the joint_state_broadcaster is ready
-    # (Optional, but often cleaner logs)
+    # 5. Delay Start
     diff_drive_spawner_delayed = RegisterEventHandler(
         event_handler=OnProcessExit(
             target_action=joint_state_broadcaster_spawner,
@@ -63,6 +69,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        world_type_arg,
         gazebo_launch,
         joint_state_broadcaster_spawner,
         diff_drive_spawner_delayed,

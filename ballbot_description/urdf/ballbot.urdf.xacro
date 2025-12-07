@@ -83,7 +83,6 @@
       <child link="${prefix}_wheel"/>
       <origin xyz="0 ${reflect * wheel_y_offset} ${wheel_z_offset}" rpy="0 0 0"/>
       <axis xyz="0 1 0"/>
-      <!-- CRITICAL FIX: Limits are required for Gazebo to apply effort -->
       <limit effort="50.0" velocity="20.0"/>
     </joint>
 
@@ -149,7 +148,6 @@
     </joint>
   </xacro:macro>
 
-  <!-- FIX: Added base_footprint to silence KDL warning about root link inertia -->
   <link name="base_footprint"/>
 
   <joint name="base_joint" type="fixed">
@@ -247,16 +245,43 @@
     <origin xyz="0 0 0.05" rpy="0 0 0"/>
   </joint>
 
+  <!-- === LIDAR SENSOR PLUGIN START === -->
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="gpu_lidar">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <visualize>true</visualize>
+      <update_rate>10</update_rate>
+      <topic>scan</topic> <!-- Force topic name to /scan -->
+
+      <frame_id>lidar_link</frame_id>
+
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14</min_angle>
+            <max_angle>3.14</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.1</min>
+          <max>10.0</max>
+        </range>
+      </ray>
+    </sensor>
+  </gazebo>
+  <!-- === LIDAR SENSOR PLUGIN END === -->
+
   <xacro:collector_arm prefix="left" reflect="1" angle="${arm_angle}" limit_lower="-1.57" limit_upper="0.0"/>
   <xacro:collector_arm prefix="right" reflect="-1" angle="${arm_angle}" limit_lower="0.0" limit_upper="1.57"/>
 
-  <!-- ROS2 CONTROL -->
   <ros2_control name="GazeboSimSystem" type="system">
     <hardware>
       <plugin>gz_ros2_control/GazeboSimSystem</plugin>
     </hardware>
     
-    <!-- Wheels -->
     <joint name="left_wheel_joint">
       <command_interface name="velocity">
         <param name="min">-10</param>
@@ -275,7 +300,6 @@
       <state_interface name="position"/>
     </joint>
 
-    <!-- Flaps -->
     <joint name="left_flap_joint">
       <command_interface name="position"/>
       <state_interface name="position"/>
@@ -289,7 +313,6 @@
     </joint>
   </ros2_control>
 
-  <!-- Gazebo Plugin for ros2_control -->
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters>$(find ballbot_control)/config/ballbot_controllers.yaml</parameters>
@@ -299,32 +322,6 @@
   <gazebo reference="castor_wheel">
     <mu1>0.001</mu1>
     <mu2>0.001</mu2>
-  </gazebo>
-
-  <gazebo reference="lidar_link">
-    <sensor name="lidar" type="gpu_lidar">
-      <pose>0 0 0 0 0 0</pose>
-      <always_on>true</always_on>
-      <visualize>true</visualize>
-      <update_rate>10</update_rate>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>360</samples>
-            <resolution>1</resolution>
-            <min_angle>-3.14</min_angle>
-            <max_angle>3.14</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.1</min>
-          <max>10.0</max>
-        </range>
-      </ray>
-      <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
-        <render_engine>ogre2</render_engine>
-      </plugin>
-    </sensor>
   </gazebo>
 
 </robot>

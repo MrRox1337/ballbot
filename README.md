@@ -345,5 +345,5 @@ This staged approach helps isolate failures (Gazebo, TF, controllers, teleop).
 
 **License**
 
--   Copyright © Aman Mishra | 2025
+-   Copyright 2025 Aman Mishra
 -   Check each package's `LICENSE` file for licensing details. This repo contains multiple packages; each package may include its own license file.

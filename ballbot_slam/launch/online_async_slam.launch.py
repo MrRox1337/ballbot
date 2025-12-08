@@ -80,13 +80,13 @@ def generate_launch_description():
     )
     
     # --- 5. Teleoperation ---
-    # Using gnome-terminal instead of xterm for Ubuntu compatibility
+    # Using gnome-terminal for Ubuntu compatibility
     start_teleop_node = Node(
         package='ballbot_teleop',
         executable='teleop_flap_node',
         name='teleop_flap_node',
         output='screen',
-        prefix='gnome-terminal --', # Changed from 'xterm -e'
+        prefix='gnome-terminal --', 
         parameters=[{'use_sim_time': use_sim_time}]
     )
 

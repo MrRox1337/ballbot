@@ -15,7 +15,15 @@ def generate_launch_description():
         description='Choose world: "empty" or "assessment"'
     )
     
+    # --- ADDED: Declare use_sim_time argument ---
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Use simulation (Gazebo) clock if true'
+    )
+    
     world_type = LaunchConfiguration('world_type')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # 2. Path Configuration
     pkg_ballbot_description = FindPackageShare('ballbot_description')
@@ -30,8 +38,6 @@ def generate_launch_description():
     robot_description = {'robot_description': ParameterValue(robot_description_config, value_type=str)}
 
     # 4. Dynamic World Selection Logic
-    # If world_type is 'empty', use empty.sdf
-    # If world_type is 'assessment', use the full path to assessment.sdf AND add --render-engine ogre
     assessment_world_path = PathJoinSubstitution([
         pkg_assessment_world, 'worlds', 'assessment.sdf'
     ])
@@ -44,11 +50,12 @@ def generate_launch_description():
     # 5. Nodes and Launch Files
 
     # A. Robot State Publisher
+    # --- FIXED: Added use_sim_time parameter ---
     node_robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         output='screen',
-        parameters=[robot_description]
+        parameters=[robot_description, {'use_sim_time': use_sim_time}]
     )
 
     # B. Gazebo Harmonic Launch
@@ -85,6 +92,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         world_type_arg,
+        use_sim_time_arg, # Added to LD
         node_robot_state_publisher,
         gazebo,
         spawn_entity,

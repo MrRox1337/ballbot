@@ -1,7 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -60,7 +59,6 @@ def generate_launch_description():
     )
 
     # --- 4. Sensor Bridge ---
-    # Added use_sim_time parameter to ensure timestamps sync with Gazebo clock
     lidar_bridge_node = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
@@ -70,6 +68,8 @@ def generate_launch_description():
     )
 
     # --- 5. Navigation 2 Bringup ---
+    # We removed the GroupAction/Remapping. 
+    # The topic connections are now handled internally in ballbot_nav2_params.yaml
     nav2_bringup_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([pkg_nav2_bringup, 'launch', 'bringup_launch.py'])
@@ -91,16 +91,6 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen'
     )
-    
-    # --- 7. Velocity Relay ---
-    # Relays commands from Nav2 (/cmd_vel) to the robot controller (/diff_drive_base_controller/cmd_vel)
-    # This requires 'ros-jazzy-topic-tools'. If missing, install it: sudo apt install ros-jazzy-topic-tools
-    cmd_vel_relay = Node(
-        package='topic_tools',
-        executable='relay',
-        arguments=['/cmd_vel', '/diff_drive_base_controller/cmd_vel'],
-        output='screen'
-    )
 
     return LaunchDescription([
         declare_use_sim_time,
@@ -109,7 +99,6 @@ def generate_launch_description():
         declare_world_type,
         ballbot_control_launch,
         lidar_bridge_node,
-        cmd_vel_relay,
         nav2_bringup_launch, 
         rviz_node,
     ])

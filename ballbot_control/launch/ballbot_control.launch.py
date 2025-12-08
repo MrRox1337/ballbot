@@ -16,22 +16,37 @@ def generate_launch_description():
         description='Choose world: "empty" or "assessment"'
     )
     
+    # --- ADDED: Declare use_sim_time ---
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true',
+        description='Use simulation clock'
+    )
+    
     world_type = LaunchConfiguration('world_type')
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # 2. Package Paths
     pkg_ballbot_gazebo = FindPackageShare('ballbot_gazebo')
     pkg_ballbot_control = FindPackageShare('ballbot_control')
 
     # 3. Launch Simulation (Gazebo + Robot State Publisher + Clock Bridge)
-    # CHANGED: We pass the 'world_type' argument to the included launch file
+    # --- FIXED: Pass use_sim_time to the included launch ---
     gazebo_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([pkg_ballbot_gazebo, 'launch', 'ballbot_gazebo.launch.py'])
         ),
-        launch_arguments={'world_type': world_type}.items()
+        launch_arguments={
+            'world_type': world_type, 
+            'use_sim_time': use_sim_time
+        }.items()
     )
 
     # 4. Spawners
+    # Note: Controller manager spawners usually auto-detect use_sim_time from the /clock topic
+    # if the controller_manager node is running with use_sim_time=True.
+    # The gz_ros2_control plugin handles the manager, so it usually syncs automatically.
+    
     joint_state_broadcaster_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -70,6 +85,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         world_type_arg,
+        use_sim_time_arg,
         gazebo_launch,
         joint_state_broadcaster_spawner,
         diff_drive_spawner_delayed,

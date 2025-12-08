@@ -29,7 +29,7 @@ amcl:
         save_pose_rate: 0.5
         sigma_hit: 0.2
         tf_broadcast: true
-        transform_tolerance: 1.0
+        transform_tolerance: 2.0
         update_min_a: 0.2
         update_min_d: 0.25
         z_hit: 0.5
@@ -46,8 +46,59 @@ bt_navigator:
         default_bt_xml_filename: "navigate_to_pose_w_replanning_and_recovery.xml"
         bt_loop_duration: 10
         default_server_timeout: 20
-        # 'default_nav_to_pose_bt_xml' replaced by 'default_bt_xml_filename' in recent versions,
-        # but keeping generic defaults handled by nav2_bringup usually works best.
+
+        # Navigators
+        navigators: ["navigate_to_pose", "navigate_through_poses"]
+        navigate_to_pose:
+            plugin: "nav2_bt_navigator/NavigateToPoseNavigator"
+        navigate_through_poses:
+            plugin: "nav2_bt_navigator/NavigateThroughPosesNavigator"
+
+        plugin_lib_names:
+            - nav2_compute_path_to_pose_action_bt_node
+            - nav2_compute_path_through_poses_action_bt_node
+            - nav2_smooth_path_action_bt_node
+            - nav2_follow_path_action_bt_node
+            - nav2_spin_action_bt_node
+            - nav2_wait_action_bt_node
+            - nav2_back_up_action_bt_node
+            - nav2_drive_on_heading_action_bt_node
+            - nav2_clear_costmap_service_bt_node
+            - nav2_is_stuck_condition_bt_node
+            - nav2_goal_reached_condition_bt_node
+            - nav2_goal_updated_condition_bt_node
+            - nav2_globally_updated_goal_condition_bt_node
+            - nav2_is_path_valid_condition_bt_node
+            - nav2_initial_pose_received_condition_bt_node
+            - nav2_reinitialize_global_localization_service_bt_node
+            - nav2_rate_controller_bt_node
+            - nav2_distance_controller_bt_node
+            - nav2_speed_controller_bt_node
+            - nav2_truncate_path_action_bt_node
+            - nav2_truncate_path_local_action_bt_node
+            - nav2_goal_updater_node_bt_node
+            - nav2_recovery_node_bt_node
+            - nav2_pipeline_sequence_bt_node
+            - nav2_round_robin_node_bt_node
+            - nav2_transform_available_condition_bt_node
+            - nav2_time_expired_condition_bt_node
+            - nav2_path_expirer_condition_bt_node
+            - nav2_distance_traveled_condition_bt_node
+            - nav2_single_trigger_bt_node
+            - nav2_goal_updated_controller_bt_node
+            - nav2_is_battery_low_condition_bt_node
+            - nav2_navigate_through_poses_action_bt_node
+            - nav2_navigate_to_pose_action_bt_node
+            - nav2_remove_passed_goals_action_bt_node
+            - nav2_planner_selector_bt_node
+            - nav2_controller_selector_bt_node
+            - nav2_goal_checker_selector_bt_node
+            - nav2_controller_cancel_bt_node
+            - nav2_path_longer_on_approach_bt_node
+            - nav2_wait_cancel_bt_node
+            - nav2_spin_cancel_bt_node
+            - nav2_back_up_cancel_bt_node
+            - nav2_drive_on_heading_cancel_bt_node
 
 controller_server:
     ros__parameters:
@@ -61,7 +112,6 @@ controller_server:
         goal_checker_plugins: ["general_goal_checker"]
         controller_plugins: ["FollowPath"]
 
-        # Plugins
         progress_checker:
             plugin: "nav2_controller::SimpleProgressChecker"
             required_movement_radius: 0.5
@@ -195,7 +245,6 @@ global_costmap:
 map_server:
     ros__parameters:
         use_sim_time: True
-        # yaml_filename: "" # passed by launch
 
 planner_server:
     ros__parameters:
@@ -203,7 +252,7 @@ planner_server:
         use_sim_time: True
         planner_plugins: ["GridBased"]
         GridBased:
-            plugin: "nav2_navfn_planner/NavfnPlanner"
+            plugin: "nav2_navfn_planner::NavfnPlanner"
             tolerance: 0.5
             use_astar: false
             allow_unknown: true
@@ -215,13 +264,13 @@ behavior_server:
         cycle_frequency: 10.0
         behavior_plugins: ["spin", "backup", "drive_on_heading", "wait"]
         spin:
-            plugin: "nav2_behaviors/Spin"
+            plugin: "nav2_behaviors::Spin"
         backup:
-            plugin: "nav2_behaviors/BackUp"
+            plugin: "nav2_behaviors::BackUp"
         drive_on_heading:
-            plugin: "nav2_behaviors/DriveOnHeading"
+            plugin: "nav2_behaviors::DriveOnHeading"
         wait:
-            plugin: "nav2_behaviors/Wait"
+            plugin: "nav2_behaviors::Wait"
         global_frame: odom
         robot_base_frame: base_footprint
         transform_tolerance: 0.1
@@ -230,3 +279,48 @@ behavior_server:
         max_rotational_vel: 1.0
         min_rotational_vel: 0.4
         rotational_acc_lim: 3.2
+
+velocity_smoother:
+    ros__parameters:
+        use_sim_time: True
+        smoothing_frequency: 20.0
+        scale_velocities: False
+        feedback: "OPEN_LOOP"
+        max_velocity: [0.5, 0.0, 1.0]
+        min_velocity: [-0.5, 0.0, -1.0]
+        max_accel: [2.5, 0.0, 3.2]
+        max_decel: [-2.5, 0.0, -3.2]
+        odom_topic: "odom"
+        # --- FIXED: Topic Chain ---
+        cmd_vel_in_topic: "cmd_vel"
+        cmd_vel_out_topic: "cmd_vel_smoothed"
+
+collision_monitor:
+    ros__parameters:
+        use_sim_time: True
+        base_frame_id: "base_footprint"
+        odom_frame_id: "odom"
+        # --- FIXED: Topic Chain & Points ---
+        cmd_vel_in_topic: "cmd_vel_smoothed"
+        cmd_vel_out_topic: "/diff_drive_base_controller/cmd_vel"
+        transform_tolerance: 0.1
+        source_timeout: 1.0
+        base_shift_correction: True
+        observation_sources: ["scan"]
+        scan:
+            type: "scan"
+            topic: "/scan"
+            enabled: True
+            min_height: 0.0
+            max_height: 2.0
+            clearing: True
+            marking: True
+            data_type: "LaserScan"
+        polygons: ["Footprint"]
+        Footprint:
+            type: "polygon"
+            points: "[0.25, 0.25, 0.25, -0.25, -0.25, -0.25, -0.25, 0.25]"
+            action_type: "stop"
+            min_points: 4
+            visualize: True
+            polygon_pub_topic: "polygon_stop"

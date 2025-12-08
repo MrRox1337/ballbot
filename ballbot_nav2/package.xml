@@ -11,6 +11,8 @@
   <exec_depend>nav2_common</exec_depend>
   <exec_depend>ballbot_bringup</exec_depend>
   <exec_depend>ballbot_slam</exec_depend>
+  <exec_depend>ballbot_control</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

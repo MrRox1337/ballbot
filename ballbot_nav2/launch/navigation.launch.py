@@ -1,126 +1,209 @@
-# Copyright 2025 Aman Mishra
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#!/usr/bin/env python3
 
-import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import Node, SetRemap
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
-    # --- 1. Define Paths ---
     pkg_ballbot_nav2 = FindPackageShare('ballbot_nav2')
     pkg_ballbot_slam = FindPackageShare('ballbot_slam')
     pkg_ballbot_control = FindPackageShare('ballbot_control')
     pkg_nav2_bringup = FindPackageShare('nav2_bringup')
     
-    # --- 2. Arguments ---
     use_sim_time = LaunchConfiguration('use_sim_time')
-    map_yaml_file = LaunchConfiguration('map')
     params_file = LaunchConfiguration('params_file')
-    world_type = LaunchConfiguration('world_type')
-
+    map_file = LaunchConfiguration('map')
+    
     declare_use_sim_time = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true',
-        description='Use simulation (Gazebo) clock if true'
+        'use_sim_time', default_value='true'
     )
-
-    declare_map_yaml = DeclareLaunchArgument(
+    
+    declare_params = DeclareLaunchArgument(
+        'params_file',
+        default_value=PathJoinSubstitution([
+            pkg_ballbot_nav2, 'config', 'ballbot_nav2_params.yaml'
+        ])
+    )
+    
+    declare_map = DeclareLaunchArgument(
         'map',
         default_value=PathJoinSubstitution([
             pkg_ballbot_slam, 'maps', 'assessment_map.yaml'
-        ]),
-        description='Full path to map yaml file to load'
+        ])
     )
-
-    # declare_params_file = DeclareLaunchArgument(
-    #     'params_file',
-    #     default_value=PathJoinSubstitution([
-    #         pkg_ballbot_nav2, 'config', 'ballbot_nav2_params.yaml'
-    #     ]),
-    #     description='Full path to the ROS2 parameters file to use for all launched nodes'
-    # )
     
-    declare_world_type = DeclareLaunchArgument(
-        'world_type',
-        default_value='assessment',
-        description='Choose world: "empty" or "assessment"'
-    )
-
-    # --- 3. Simulation & Robot Bringup ---
-    # This brings up Gazebo, Spawns Robot, Starts Controllers (robot_state_publisher, etc)
-    ballbot_control_launch = IncludeLaunchDescription(
+    # Simulation
+    sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            PathJoinSubstitution([pkg_ballbot_control, 'launch', 'ballbot_control.launch.py'])
+            PathJoinSubstitution([
+                pkg_ballbot_control, 'launch', 'ballbot_control.launch.py'
+            ])
         ),
-        launch_arguments={
-            'world_type': world_type,
-            'use_sim_time': use_sim_time
-        }.items()
+        launch_arguments={'world_type': 'assessment', 'use_sim_time': use_sim_time}.items()
     )
-
-    # --- 4. Sensor Bridge ---
-    # Bridges the Gazebo scan topic to ROS 2
-    lidar_bridge_node = Node(
+    
+    # Lidar bridge
+    lidar_bridge = Node(
         package='ros_gz_bridge',
         executable='parameter_bridge',
         arguments=['/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan'],
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}]
-    )
-
-    # --- 5. Navigation 2 Bringup (WITH FIX) ---
-    # The diff_drive_controller listens on /diff_drive_base_controller/cmd_vel
-    # But Nav2 publishes on /cmd_vel by default. We wrap it in a GroupAction to remap it.
-    nav2_bringup_launch = GroupAction(
-        actions=[
-            SetRemap(src='/cmd_vel', dst='/diff_drive_base_controller/cmd_vel'),
-            
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(
-                    PathJoinSubstitution([pkg_nav2_bringup, 'launch', 'bringup_launch.py'])
-                ),
-                launch_arguments={
-                    'use_sim_time': use_sim_time,
-                    'map': map_yaml_file,
-                    # 'params_file': params_file,
-                    'autostart': 'true',
-                }.items()
-            )
-        ]
-    )
-
-    # --- 6. RViz ---
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', PathJoinSubstitution([pkg_nav2_bringup, 'rviz', 'nav2_default_view.rviz'])],
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen'
     )
+    
+    # Relay
+    relay = Node(
+        package='ballbot_nav2',
+        executable='cmd_vel_relay',
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Map server
+    map_server = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        parameters=[{'yaml_filename': map_file, 'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # AMCL
+    amcl = Node(
+        package='nav2_amcl',
+        executable='amcl',
+        name='amcl',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Controller
+    controller = Node(
+        package='nav2_controller',
+        executable='controller_server',
+        name='controller_server',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Planner
+    planner = Node(
+        package='nav2_planner',
+        executable='planner_server',
+        name='planner_server',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Smoother
+    smoother = Node(
+        package='nav2_smoother',
+        executable='smoother_server',
+        name='smoother_server',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Behavior
+    behavior = Node(
+        package='nav2_behaviors',
+        executable='behavior_server',
+        name='behavior_server',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # BT Navigator
+    bt_navigator = Node(
+        package='nav2_bt_navigator',
+        executable='bt_navigator',
+        name='bt_navigator',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Waypoint follower
+    waypoint_follower = Node(
+        package='nav2_waypoint_follower',
+        executable='waypoint_follower',
+        name='waypoint_follower',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
+    # Velocity smoother
+    velocity_smoother = Node(
+        package='nav2_velocity_smoother',
+        executable='velocity_smoother',
+        name='velocity_smoother',
+        parameters=[params_file, {'use_sim_time': use_sim_time}],
+        output='screen'
+    )
 
+    # Collision monitor
+    # collision_monitor = Node(
+    #     package='nav2_collision_monitor',
+    #     executable='collision_monitor',
+    #     name='collision_monitor',
+    #     parameters=[params_file, {'use_sim_time': use_sim_time}],
+    #     output='screen'
+    # )
+    
+    # Lifecycle manager - WITHOUT collision_monitor
+    lifecycle_manager = Node(
+        package='nav2_lifecycle_manager',
+        executable='lifecycle_manager',
+        name='lifecycle_manager_navigation',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            'autostart': True,
+            'node_names': [
+                'map_server',
+                'amcl',
+                'controller_server',
+                'smoother_server',
+                'planner_server',
+                'behavior_server',
+                'bt_navigator',
+                'waypoint_follower',
+                'velocity_smoother'
+                # 'collision_monitor' 
+            ]
+        }],
+        output='screen'
+    )
+    
+    # RViz
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', PathJoinSubstitution([
+            pkg_nav2_bringup, 'rviz', 'nav2_default_view.rviz'
+        ])],
+        parameters=[{'use_sim_time': use_sim_time}],
+        output='screen'
+    )
+    
     return LaunchDescription([
         declare_use_sim_time,
-        declare_map_yaml,
-        # declare_params_file,
-        declare_world_type,
-        ballbot_control_launch,
-        lidar_bridge_node,
-        nav2_bringup_launch, 
-        rviz_node,
+        declare_params,
+        declare_map,
+        sim_launch,
+        lidar_bridge,
+        relay,
+        map_server,
+        amcl,
+        controller,
+        planner,
+        smoother,
+        behavior,
+        bt_navigator,
+        waypoint_follower,
+        velocity_smoother,
+        # collision_monitor,
+        lifecycle_manager,
+        rviz
     ])

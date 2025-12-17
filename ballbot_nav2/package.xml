@@ -3,13 +3,15 @@
 <package format="3">
   <name>ballbot_nav2</name>
   <version>0.0.0</version>
-  <description>Navigation 2 stack configuration and launch files for Ballbot</description>
+  <description>Navigation 2 configuration for Ballbot</description>
   <maintainer email="amanrox97@gmail.com">Aman Mishra</maintainer>
   <license>Apache-2.0</license>
 
+  <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>nav2_common</exec_depend>
-  <exec_depend>ballbot_bringup</exec_depend>
   <exec_depend>ballbot_slam</exec_depend>
   <exec_depend>ballbot_control</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>

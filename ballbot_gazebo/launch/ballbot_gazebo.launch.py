@@ -75,7 +75,7 @@ def generate_launch_description():
             '-name', 'ballbot',
             '-z', '0.2',
             '-x', '0.0',
-            '-y', '0.0'
+            '-y', '-0.2'
         ],
         output='screen'
     )

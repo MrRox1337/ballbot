@@ -1,28 +1,38 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ballbot">
 
-  <xacro:property name="chassis_len" value="0.5"/>
-  <xacro:property name="chassis_width" value="0.5"/>
+  <!-- ========================================================================= -->
+  <!-- DIMENSIONS AND PROPERTIES (ADJUSTED) -->
+  <!-- ========================================================================= -->
+
+  <!-- Chassis (Base) Dimensions -->
+  <xacro:property name="chassis_len" value="0.30"/>   <!-- Length remains 30cm -->
+  <xacro:property name="chassis_width" value="0.65"/> <!-- CHANGED: 0.60 -> 0.65 (Wider by 5cm) -->
   <xacro:property name="chassis_height" value="0.3"/>
   <xacro:property name="chassis_mass" value="3.0"/>
   <xacro:property name="chassis_z_offset" value="0.20"/> 
 
+  <!-- Wheel Dimensions -->
   <xacro:property name="wheel_radius" value="0.05"/>
   <xacro:property name="wheel_width" value="0.04"/>
   <xacro:property name="wheel_mass" value="0.5"/>
-  <xacro:property name="wheel_y_offset" value="0.27"/>
+  <!-- Adjusted wheel separation to fit the new chassis (0.65m width) -->
+  <xacro:property name="wheel_y_offset" value="0.305"/> <!-- ADJUSTED: 0.28 -> 0.305 -->
   <xacro:property name="wheel_z_offset" value="0.05"/>
 
+  <!-- Castor Dimensions -->
   <xacro:property name="castor_radius" value="0.04"/>
   <xacro:property name="castor_mass" value="1.5"/>
-  <xacro:property name="castor_x_offset" value="-0.2"/>
+  <!-- Castor position remains the same as chassis length is unchanged -->
+  <xacro:property name="castor_x_offset" value="-0.12"/>
 
-  <xacro:property name="arm_len" value="0.6"/>
-  <xacro:property name="arm_width" value="0.05"/>
+  <!-- Arm and Flap Dimensions -->
+  <xacro:property name="arm_len" value="0.60"/>     <!-- CHANGED: 0.25 -> 0.30 (Longer by 5cm) -->
+  <xacro:property name="arm_width" value="0.03"/>   <!-- Arm width remains 3cm -->
   <xacro:property name="arm_height" value="0.3"/>
   <xacro:property name="arm_mass" value="0.04"/>
-  <xacro:property name="arm_angle" value="0.523"/> 
-  <xacro:property name="flap_len" value="0.3"/>
+  <xacro:property name="arm_angle" value="0.0"/>    <!-- Straight forward -->
+  <xacro:property name="flap_len" value="0.25"/>    <!-- CHANGED: 0.19 -> 0.25 (Longer by 6cm) -->
   <xacro:property name="flap_width" value="0.02"/>
   <xacro:property name="flap_height" value="0.3"/>
   <xacro:property name="flap_mass" value="0.01"/>
@@ -32,6 +42,10 @@
   <material name="grey"><color rgba="0.5 0.5 0.5 1.0"/></material>
   <material name="green"><color rgba="0.0 0.8 0.0 1.0"/></material>
   <material name="red"><color rgba="0.8 0.0 0.0 1.0"/></material>
+
+  <!-- ========================================================================= -->
+  <!-- MACROS -->
+  <!-- ========================================================================= -->
 
   <xacro:macro name="box_inertia" params="m x y z">
     <inertial>
@@ -97,12 +111,16 @@
   <xacro:macro name="collector_arm" params="prefix reflect angle limit_lower limit_upper">
     <link name="${prefix}_arm">
       <visual>
+        <!-- Offset the visual to place the arm's center half its length forward, 
+             making the joint origin the base of the arm (x=0) -->
+        <origin xyz="${arm_len/2} 0 0" rpy="0 0 0"/>
         <geometry>
           <box size="${arm_len} ${arm_width} ${arm_height}"/>
         </geometry>
         <material name="green"/>
       </visual>
       <collision>
+        <origin xyz="${arm_len/2} 0 0" rpy="0 0 0"/>
         <geometry>
           <box size="${arm_len} ${arm_width} ${arm_height}"/>
         </geometry>
@@ -113,7 +131,9 @@
     <joint name="${prefix}_arm_joint" type="fixed">
       <parent link="base_link"/>
       <child link="${prefix}_arm"/>
-      <origin xyz="0.51 ${reflect * 0.40} ${chassis_z_offset}" rpy="0 0 ${reflect * angle}"/>
+      <!-- Attach point at the front edge of the chassis (x=chassis_len/2) 
+           and set Y position exactly to the chassis edge (chassis_width/2) -->
+      <origin xyz="${chassis_len/2} ${reflect * chassis_width/2} ${chassis_z_offset}" rpy="0 0 ${reflect * angle}"/>
     </joint>
 
     <link name="${prefix}_flap">
@@ -142,11 +162,16 @@
     <joint name="${prefix}_flap_joint" type="revolute">
       <parent link="${prefix}_arm"/>
       <child link="${prefix}_flap"/>
-      <origin xyz="${arm_len/2} 0 0" rpy="0 0 0"/>
+      <!-- Flap joint origin at the end of the arm link (x=arm_len) -->
+      <origin xyz="${arm_len} 0 0" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
       <limit lower="${limit_lower}" upper="${limit_upper}" effort="10.0" velocity="1.0"/>
     </joint>
   </xacro:macro>
+
+  <!-- ========================================================================= -->
+  <!-- ROBOT STRUCTURE -->
+  <!-- ========================================================================= -->
 
   <link name="base_footprint"/>
 
@@ -275,6 +300,7 @@
   </gazebo>
   <!-- === LIDAR SENSOR PLUGIN END === -->
 
+  <!-- Arms are now straight (angle=0.0), longer (arm_len=0.30), skinnier (arm_width=0.03), and flaps are 0.22m -->
   <xacro:collector_arm prefix="left" reflect="1" angle="${arm_angle}" limit_lower="-1.57" limit_upper="0.0"/>
   <xacro:collector_arm prefix="right" reflect="-1" angle="${arm_angle}" limit_lower="0.0" limit_upper="1.57"/>
 

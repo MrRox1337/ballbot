@@ -85,12 +85,18 @@ local_costmap:
             width: 3
             height: 3
             resolution: 0.05
-            robot_radius: 0.40
+            # UPDATED: Robot footprint to match actual dimensions
+            # Robot is 1.0m long (0.65m arms + 0.25m flaps + 0.15m chassis front)
+            # and 0.70m wide (0.65m chassis + arm clearance)
+            # Format: [[front_left_x, front_left_y], [front_right_x, front_right_y],
+            #          [back_right_x, back_right_y], [back_left_x, back_left_y]]
+            footprint: "[[1.0, 0.35], [1.0, -0.35], [-0.27, -0.35], [-0.27, 0.35]]"
             plugins: ["voxel_layer", "inflation_layer"]
             inflation_layer:
                 plugin: "nav2_costmap_2d::InflationLayer"
                 cost_scaling_factor: 3.0
-                inflation_radius: 0.60
+                # UPDATED: Increased inflation radius to give more clearance
+                inflation_radius: 0.80
             voxel_layer:
                 plugin: "nav2_costmap_2d::VoxelLayer"
                 enabled: True
@@ -120,7 +126,8 @@ global_costmap:
             global_frame: map
             robot_base_frame: base_footprint
             use_sim_time: True
-            robot_radius: 0.40
+            # UPDATED: Using footprint instead of robot_radius
+            footprint: "[[1.0, 0.35], [1.0, -0.35], [-0.27, -0.35], [-0.27, 0.35]]"
             resolution: 0.05
             track_unknown_space: true
             plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -144,7 +151,8 @@ global_costmap:
             inflation_layer:
                 plugin: "nav2_costmap_2d::InflationLayer"
                 cost_scaling_factor: 3.0
-                inflation_radius: 0.60
+                # UPDATED: Increased inflation radius
+                inflation_radius: 0.80
 
 map_server:
     ros__parameters:

@@ -37,7 +37,7 @@ class CmdVelRelay(Node):
         self.publisher.publish(stamped_msg)
         
         # Debug output
-        self.get_logger().info(f'Relaying: linear.x={msg.linear.x:.2f}, angular.z={msg.angular.z:.2f}')
+        # self.get_logger().info(f'Relaying: linear.x={msg.linear.x:.2f}, angular.z={msg.angular.z:.2f}')
 
 
 def main(args=None):

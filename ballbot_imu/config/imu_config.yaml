@@ -1,0 +1,37 @@
+# BNO055 Emulation Configuration for Ballbot IMU
+
+imu_processor:
+    ros__parameters:
+        # Topics
+        input_topic: "/imu_raw" # Raw IMU from Gazebo
+        output_topic: "/imu/data" # Processed IMU output
+        euler_topic: "/imu/euler" # Euler angles (degrees)
+
+        # Frame
+        frame_id: "imu_link"
+
+        # Sensor characteristics (based on BNO055 datasheet)
+        publish_rate: 100.0 # Hz (BNO055 can do up to 100Hz)
+
+        # Gravity compensation
+        remove_gravity: false # Set to true for linear acceleration mode
+
+        # Noise parameters (simulating real BNO055 sensor)
+        # These values are based on BNO055 specifications
+        noise_stddev_orientation: 0.001 # ~0.06° noise in orientation
+        noise_stddev_angular_vel: 0.0002 # Gyro noise density: 0.014 °/s/√Hz
+        noise_stddev_linear_accel: 0.01 # Accel noise: 150 µg RMS
+
+imu_filter:
+    ros__parameters:
+        # Topics
+        input_topic: "/imu/data"
+        output_topic: "/imu/data_filtered"
+
+        # Filter parameters
+        filter_alpha:
+            0.98 # Complementary filter coefficient
+            # 0.98 = trust gyro 98%, accel 2%
+            # Higher = more responsive but may drift
+            # Lower = more stable but slower response
+        update_rate: 100.0 # Hz

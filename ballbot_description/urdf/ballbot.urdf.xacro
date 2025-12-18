@@ -300,6 +300,104 @@
   </gazebo>
   <!-- === LIDAR SENSOR PLUGIN END === -->
 
+<!-- === IMU SENSOR PLUGIN START === -->
+<gazebo reference="imu_link">
+  <sensor name="imu_sensor" type="imu">
+    <pose>0 0 0 0 0 0</pose>  <!-- Now relative to imu_link -->
+    
+    <!-- Update rate (BNO055 can do 100Hz) -->
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <visualize>false</visualize>
+    
+    <!-- Topic name -->
+    <topic>/imu_raw</topic>
+    
+    <!-- IMU sensor configuration -->
+    <imu>
+      <!-- Angular velocity (gyroscope) -->
+      <angular_velocity>
+        <x>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+          </noise>
+        </x>
+        <y>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+          </noise>
+        </y>
+        <z>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+          </noise>
+        </z>
+      </angular_velocity>
+      
+      <!-- Linear acceleration (accelerometer) -->
+      <linear_acceleration>
+        <x>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+            <bias_mean>0.005</bias_mean>
+            <bias_stddev>0.0002</bias_stddev>
+          </noise>
+        </x>
+        <y>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+            <bias_mean>0.005</bias_mean>
+            <bias_stddev>0.0002</bias_stddev>
+          </noise>
+        </y>
+        <z>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+            <bias_mean>0.005</bias_mean>
+            <bias_stddev>0.0002</bias_stddev>
+          </noise>
+        </z>
+      </linear_acceleration>
+    </imu>
+  </sensor>
+</gazebo>
+
+<!-- Create a separate imu_link for proper TF tree -->
+<link name="imu_link">
+  <visual>
+    <geometry>
+      <box size="0.02 0.02 0.01"/>
+    </geometry>
+    <material name="grey"/>
+  </visual>
+  <collision>
+    <geometry>
+      <box size="0.02 0.02 0.01"/>
+    </geometry>
+  </collision>
+  <xacro:box_inertia m="0.01" x="0.02" y="0.02" z="0.01"/>
+</link>
+
+<joint name="imu_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="imu_link"/>
+  <!-- Mount IMU in the center of the chassis -->
+  <origin xyz="0 0 0.2" rpy="0 0 0"/>
+</joint>
+<!-- === IMU SENSOR PLUGIN END === -->
+
   <!-- Arms are now straight (angle=0.0), longer (arm_len=0.60), skinnier (arm_width=0.03), and flaps are 0.25m -->
   <xacro:collector_arm prefix="left" reflect="1" angle="${arm_angle}" limit_lower="-1.57" limit_upper="0.0"/>
   <xacro:collector_arm prefix="right" reflect="-1" angle="${arm_angle}" limit_lower="0.0" limit_upper="1.57"/>

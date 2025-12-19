@@ -29,8 +29,10 @@ A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, L
     - [ballbot_imu (Experimental)](#ballbot_imu-experimental)
 8. [Assessment World](#assessment-world)
 9. [Usage Examples](#usage-examples)
-10. [Troubleshooting](#troubleshooting)
-11. [Contributing](#contributing)
+10. [Scripted Waypoint Navigation](#scripted-waypoint-navigation)
+11. [Known Issues](#known-issues)
+12. [Troubleshooting](#troubleshooting)
+13. [Contributing](#contributing)
 
 ---
 
@@ -597,6 +599,214 @@ ros2 run ballbot_nav2 simple_commander
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
   "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}}"
 ```
+
+---
+
+## Scripted Waypoint Navigation
+
+The `ballbot_nav2` package provides two commander scripts for autonomous navigation using the Nav2 Simple Commander API:
+
+| Script               | Purpose                                         |
+| -------------------- | ----------------------------------------------- |
+| `simple_commander`   | Navigate to a single goal position              |
+| `waypoint_commander` | Navigate through multiple waypoints in sequence |
+
+### Prerequisites: Setting Up Navigation
+
+Before running either commander, you must:
+
+**Step 1: Launch Navigation Stack**
+
+```bash
+ros2 launch ballbot_bringup bringup.launch.py navigation:=true
+```
+
+**Step 2: Set Initial Pose in RViz**
+
+AMCL needs to know where the robot is before it can navigate:
+
+1. In RViz, click the **"2D Pose Estimate"** button in the toolbar
+2. Click on the map where the robot is currently located
+3. Drag to set the orientation (direction the robot is facing)
+4. Wait a few seconds for the AMCL particle cloud to converge around the robot
+
+You'll know localization is working when the green particle cloud tightens around the robot's position.
+
+---
+
+### Simple Commander (Single Goal)
+
+Sends the robot to a single predefined goal position.
+
+**Run:**
+
+```bash
+ros2 run ballbot_nav2 simple_commander
+```
+
+**Default Goal:** x=1.0, y=0.0 (1 meter forward from origin)
+
+**File Location:** `~/ros2/ballbot_ws/src/ballbot_nav2/ballbot_nav2/simple_commander.py`
+
+---
+
+### Waypoint Commander (Multiple Waypoints)
+
+Sends the robot through a sequence of waypoints.
+
+**Run:**
+
+```bash
+ros2 run ballbot_nav2 waypoint_commander
+```
+
+**File Location:** `~/ros2/ballbot_ws/src/ballbot_nav2/ballbot_nav2/waypoint_commander.py`
+
+### Adding or Modifying Waypoints
+
+Open `waypoint_commander.py` and locate the waypoints list:
+
+```python
+waypoints = [
+    {'x': 1.0,  'y': 0.0,  'yaw': 0.0},      # Waypoint 1
+    {'x': 2.0,  'y': 1.0,  'yaw': 1.57},     # Waypoint 2
+    {'x': 0.0,  'y': 0.0,  'yaw': 0.0},      # Waypoint 3: return to start
+]
+```
+
+Each waypoint is a dictionary with three values:
+
+| Parameter | Type  | Description                        |
+| --------- | ----- | ---------------------------------- |
+| `x`       | float | X coordinate in meters (map frame) |
+| `y`       | float | Y coordinate in meters (map frame) |
+| `yaw`     | float | Orientation in radians             |
+
+**Yaw (Orientation) Reference:**
+
+| Yaw Value      | Direction                |
+| -------------- | ------------------------ |
+| `0.0`          | Facing +X (right on map) |
+| `1.57` (π/2)   | Facing +Y (up on map)    |
+| `3.14` (π)     | Facing -X (left on map)  |
+| `-1.57` (-π/2) | Facing -Y (down on map)  |
+
+### Assessment World Coordinate Reference
+
+```
+                    Y+
+                    ↑
+        (-4,4) _____|_____ (4,4)
+              |     |     |
+              | Pen | Pen |
+              |_____|_____|
+              |           |
+        -X ←  |   (0,0)   | → +X
+              |           |
+              |___________|
+       (-4,-4)            (4,-4)
+                    ↓
+                    Y-
+```
+
+**Key Locations:**
+
+-   **Center/Origin**: (0.0, 0.0)
+-   **Left Pen Area**: approximately (-0.6, 3.3)
+-   **Right Pen Area**: approximately (0.6, 3.3)
+-   **Wall boundaries**: ±4.0 meters in both X and Y
+
+### Example Waypoint Configurations
+
+**Navigate to Pen Areas:**
+
+```python
+waypoints = [
+    {'x': 0.0,  'y': 1.0,  'yaw': 1.57},    # Move forward, face pen
+    {'x': -0.6, 'y': 3.0,  'yaw': 1.57},    # Go to left pen
+    {'x': 0.6,  'y': 3.0,  'yaw': 1.57},    # Go to right pen
+    {'x': 0.0,  'y': 0.0,  'yaw': 0.0},     # Return to center
+]
+```
+
+**Patrol the Perimeter:**
+
+```python
+waypoints = [
+    {'x': 3.0,  'y': 0.0,  'yaw': 1.57},    # Right side
+    {'x': 3.0,  'y': 3.0,  'yaw': 3.14},    # Top-right corner
+    {'x': -3.0, 'y': 3.0,  'yaw': -1.57},   # Top-left corner
+    {'x': -3.0, 'y': -3.0, 'yaw': 0.0},     # Bottom-left corner
+    {'x': 3.0,  'y': -3.0, 'yaw': 1.57},    # Bottom-right corner
+    {'x': 0.0,  'y': 0.0,  'yaw': 0.0},     # Return to center
+]
+```
+
+### After Modifying Waypoints
+
+If you used `--symlink-install` during the initial build, Python file changes take effect immediately - no rebuild needed.
+
+Otherwise, rebuild the package:
+
+```bash
+cd ~/ros2/ballbot_ws
+colcon build --symlink-install --packages-select ballbot_nav2
+source install/setup.bash
+```
+
+---
+
+## Known Issues
+
+The following are known limitations of the current implementation:
+
+### 1. Manual Initial Pose Required
+
+Before running any navigation script (`simple_commander` or `waypoint_commander`), the robot's initial pose must be set manually in RViz using the "2D Pose Estimate" tool. Programmatic initialization of the initial pose has not been implemented yet.
+
+**Workaround:** Always set the 2D Pose Estimate in RViz and wait for the AMCL particle cloud to converge before running navigation commands.
+
+### 2. Odometry-Only Localization (No IMU Fusion)
+
+The robot currently relies solely on wheel odometry for pose estimation. The IMU sensor integration (`ballbot_imu` package) was attempted but not fully integrated into the localization stack.
+
+**Impact:** When the robot turns, it calculates its orientation based on how much the wheels have rotated. If the robot collides with an obstacle or experiences wheel slip, the odometry becomes inaccurate. This causes:
+
+-   Consistent buildup of orientation error over time
+-   Map "spinning out" during SLAM mapping sessions
+-   Localization drift during navigation
+
+**Workaround:**
+
+-   Avoid collisions with obstacles during mapping and navigation
+-   For SLAM, drive slowly and smoothly to minimize odometry error
+-   Re-localize periodically by setting a new 2D Pose Estimate if drift becomes noticeable
+
+### 3. Unreliable Waypoint Navigation
+
+Due to the odometry drift issue described above, the `waypoint_commander` does not work reliably for longer waypoint sequences. As the robot navigates through multiple waypoints, accumulated orientation error causes it to increasingly miss target positions.
+
+**Workaround:**
+
+-   Use fewer waypoints with shorter distances between them
+-   Use `simple_commander` for single-goal navigation which is more reliable
+-   Manually intervene with 2D Pose Estimate corrections if the robot becomes significantly mislocalized
+
+### 4. No Autonomous Ball Detection or Collection
+
+The robot has no awareness of the colored spheres that spawn in the assessment world. It cannot:
+
+-   Detect the location of the red, green, and blue spheres
+-   Autonomously navigate to collect them
+-   Autonomously transport them to the pen areas
+
+**Current capability:** The flaps can be controlled manually via teleoperation (keys 1, 2, 3) to push or grip spheres, but all ball collection must be done through manual teleoperation.
+
+**Future improvement:** This would require:
+
+-   Adding a camera sensor to the robot
+-   Implementing computer vision for colored sphere detection
+-   Creating a behavior tree or state machine for autonomous collection
 
 ---
 

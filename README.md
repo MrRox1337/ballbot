@@ -16,6 +16,7 @@ A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, L
 
 ## Table of Contents
 
+0. [Video Demonstration](#video-demonstration)
 1. [Project Overview](#project-overview)
 2. [Robot Description](#robot-description)
 3. [Package Structure](#package-structure)
@@ -37,6 +38,12 @@ A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, L
 11. [Known Issues](#known-issues)
 12. [Troubleshooting](#troubleshooting)
 13. [Contributing](#contributing)
+
+---
+
+## Video Demonstration
+
+[![Video Demonstration (12:20)](https://img.youtube.com/vi/ttmzHEC1E_Y/0.jpg)](https://youtu.be/ttmzHEC1E_Y)
 
 ---
 

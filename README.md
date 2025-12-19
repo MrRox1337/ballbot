@@ -688,9 +688,9 @@ Each waypoint is a dictionary with three values:
                     Y+
                     ↑
         (-4,4) _____|_____ (4,4)
-              |     |     |
-              | Pen | Pen |
-              |_____|_____|
+              |   |   |   |
+              |   |Pen|   |
+              |   |   |   |
               |           |
         -X ←  |   (0,0)   | → +X
               |           |

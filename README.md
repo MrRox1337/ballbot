@@ -1,349 +1,729 @@
 # Ballbot — ROS 2 Jazzy
 
-Comprehensive guide to install, build, and run the Ballbot project on Ubuntu 24.04 with ROS 2 Jazzy.
+A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, LIDAR-based SLAM, and autonomous navigation capabilities.
 
-**Contents**
-
--   **Description**: What this repository contains
--   **Prerequisites**: system and account requirements
--   **Install Ubuntu 24.04**: quick notes and recommended steps
--   **Install ROS 2 Jazzy**: apt repository, keys, and packages
--   **Install dependencies**: rosdep, colcon, Gazebo, and Python packages
--   **Build & install this workspace**: cloning, rosdep, and `colcon build`
--   **Per-package launch instructions**: commands for each package
--   **Full-project launch**: recommended bringup order and single-command launches
--   **Troubleshooting & FAQ**n+- **Contributing & License**
+**Author**: Aman Mishra  
+**Email**: amanrox97@gmail.com  
+**License**: Apache-2.0  
+**ROS Distribution**: Jazzy  
+**Simulator**: Gazebo Harmonic
 
 ---
 
-**Description**:
+## Table of Contents
 
--   This repository contains a multi-package ROS 2 workspace for the Ballbot demo. Packages in this repo:
-    -   `ballbot_bringup` — top-level bringup launch and configuration files
-    -   `ballbot_control` — controllers and controller manager launch
-    -   `ballbot_description` — URDF/Xacro, meshes and RViz config
-    -   `ballbot_gazebo` — Gazebo plugins and world integrations
-    -   `ballbot_teleop` — teleoperation node(s)
-    -   `ros2_assessment_world` — assessment Gazebo worlds and spawn scripts
+1. [Project Overview](#project-overview)
+2. [Robot Description](#robot-description)
+3. [Package Structure](#package-structure)
+4. [Prerequisites](#prerequisites)
+5. [Installation](#installation)
+6. [Quick Start](#quick-start)
+7. [Package Documentation](#package-documentation)
+    - [ballbot_description](#ballbot_description)
+    - [ballbot_gazebo](#ballbot_gazebo)
+    - [ballbot_control](#ballbot_control)
+    - [ballbot_teleop](#ballbot_teleop)
+    - [ballbot_slam](#ballbot_slam)
+    - [ballbot_nav2](#ballbot_nav2)
+    - [ballbot_bringup](#ballbot_bringup)
+    - [ballbot_imu (Experimental)](#ballbot_imu-experimental)
+8. [Assessment World](#assessment-world)
+9. [Usage Examples](#usage-examples)
+10. [Troubleshooting](#troubleshooting)
+11. [Contributing](#contributing)
 
-**Repository layout (top level)**
+---
+
+## Project Overview
+
+Ballbot is a differential-drive mobile robot designed for educational and research purposes in robotics. The project demonstrates a complete robotics software stack including:
+
+-   **Robot Modeling**: URDF/Xacro-based robot description with accurate physics
+-   **Simulation**: Full Gazebo Harmonic integration with sensors and actuators
+-   **Control**: ros2_control-based differential drive and position-controlled manipulator flaps
+-   **Teleoperation**: Custom keyboard teleoperation for driving and flap control
+-   **SLAM**: Real-time mapping using slam_toolbox
+-   **Navigation**: Autonomous navigation using Nav2 stack with AMCL localization
+
+### Key Features
+
+-   Differential drive locomotion with two powered wheels and a passive castor
+-   Dual articulated "collector arms" with controllable flaps for object manipulation
+-   360° LIDAR sensor for mapping and obstacle detection
+-   IMU sensor integration (experimental)
+-   Support for both empty worlds and the PDE4430 assessment environment
+
+---
+
+## Robot Description
+
+### Physical Specifications
+
+| Component        | Dimension                 | Description                       |
+| ---------------- | ------------------------- | --------------------------------- |
+| Chassis          | 0.30m × 0.65m × 0.30m     | Main body (blue)                  |
+| Drive Wheels     | 0.05m radius, 0.04m width | Left and right powered wheels     |
+| Wheel Separation | 0.54m                     | Distance between wheel centers    |
+| Castor Wheel     | 0.04m radius              | Passive rear support              |
+| Collector Arms   | 0.60m length              | Fixed arms extending forward      |
+| Flaps            | 0.25m length              | Articulated end-effectors on arms |
+| LIDAR            | 360° scan, 10m range      | Mounted on vertical pole          |
+
+### Coordinate Frame
+
+-   **base_footprint**: Ground projection of the robot center
+-   **base_link**: Main chassis frame
+-   **odom**: Odometry frame (from wheel encoders)
+-   **map**: Global map frame (from SLAM/localization)
+
+### TF Tree
 
 ```
-ballbot_bringup/
-ballbot_control/
-ballbot_description/
-ballbot_gazebo/
-ballbot_teleop/
-ros2_assessment_world/
+map
+└── odom
+    └── base_footprint
+        └── base_link
+            ├── left_wheel
+            ├── right_wheel
+            ├── castor_wheel
+            ├── left_arm
+            │   └── left_flap
+            ├── right_arm
+            │   └── right_flap
+            ├── vertical_pole
+            │   └── lidar_link
+            └── imu_link
 ```
 
 ---
 
-**Prerequisites**
+## Package Structure
 
--   A computer with Ubuntu 24.04 installed (64-bit recommended).
--   At least 8 GB RAM recommended; 16 GB for comfortable Gazebo usage.
--   A user account with `sudo` privileges.
--   Internet access to download packages and dependencies.
+```
+ballbot_ws/src/
+├── ballbot_bringup/          # Top-level launch orchestration
+├── ballbot_control/          # ros2_control configuration
+├── ballbot_description/      # URDF/Xacro and meshes
+├── ballbot_gazebo/           # Gazebo simulation launch
+├── ballbot_imu/              # IMU integration (experimental)
+├── ballbot_nav2/             # Nav2 configuration and launch
+├── ballbot_slam/             # SLAM toolbox configuration
+├── ballbot_teleop/           # Teleoperation nodes
+└── ros2_assessment_world/    # Assessment environment
+```
 
 ---
 
-**1) Supported OS and minimal notes**
-This guide assumes you already have a supported Ubuntu LTS installed (for example Ubuntu 22.04 or 24.04). Installing an OS is outside the scope of this document — follow the official Ubuntu installation guide if you need to install or upgrade the operating system.
+## Prerequisites
 
-After installing Ubuntu, make sure your system is updated:
+### System Requirements
+
+-   **OS**: Ubuntu 24.04 LTS (Noble Numbat)
+-   **RAM**: Minimum 8GB, recommended 16GB
+-   **GPU**: Discrete GPU recommended for Gazebo rendering
+
+### Software Dependencies
+
+-   ROS 2 Jazzy Jalisco
+-   Gazebo Harmonic
+-   Python 3.12+
+
+---
+
+## Installation
+
+### 1. Install ROS 2 Jazzy
 
 ```bash
-sudo apt update
-sudo apt upgrade -y
-```
+# Add ROS 2 GPG key
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+    -o /usr/share/keyrings/ros-archive-keyring.gpg
 
-If you need remote access, enable and configure OpenSSH during or after installation.
-
----
-
-**2) ROS 2 Jazzy — short guidance**
-This repository is developed and tested against ROS 2 Jazzy. Follow the official ROS 2 Jazzy install guide for full instructions; below is a concise, minimal set of commands to get a baseline Jazzy install on Ubuntu.
-
-Official ROS 2 docs: https://docs.ros.org
-
-Quick Jazzy install (concise):
-
-```bash
-# prerequisites
-sudo apt update && sudo apt install -y curl gnupg lsb-release
-
-# add the ROS 2 GPG key
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-
-# add the ROS 2 apt repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" |
+# Add repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+    http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | \
     sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
 
+# Install ROS 2 Desktop
 sudo apt update
-
-# install a typical desktop variant (adjust if you prefer a smaller install)
 sudo apt install -y ros-jazzy-desktop python3-argcomplete
-
-# source the distro
-source /opt/ros/jazzy/setup.bash
-
-# quick verification
-ros2 pkg list | head -n 5
 ```
 
-Notes:
-
--   Replace `ros-jazzy-desktop` with a smaller meta-package (for example `ros-jazzy-ros-base`) if you want a minimal install.
--   If a package is not available for your Ubuntu release, consult the official ROS 2 Jazzy release notes and installation docs.
-
----
-
-**3) Install common development tools & dependencies**
-
-Install `rosdep`, `colcon`, and other development packages used to build and run the workspace.
+### 2. Install Additional Dependencies
 
 ```bash
-sudo apt update
-sudo apt install -y python3-colcon-common-extensions python3-pip python3-vcstool
-sudo apt install -y python3-rosdep
+# Development tools
+sudo apt install -y python3-colcon-common-extensions python3-rosdep python3-vcstool
 
-# Initialize rosdep (run once)
+# Gazebo and ROS-Gazebo integration
+sudo apt install -y ros-jazzy-ros-gz ros-jazzy-gz-ros2-control
+
+# Control packages
+sudo apt install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers
+
+# Navigation and SLAM
+sudo apt install -y ros-jazzy-navigation2 ros-jazzy-nav2-bringup
+sudo apt install -y ros-jazzy-slam-toolbox
+
+# Visualization
+sudo apt install -y ros-jazzy-rviz2 ros-jazzy-joint-state-publisher
+
+# Initialize rosdep
 sudo rosdep init || true
 rosdep update
 ```
 
-Optional useful packages for simulation and control:
+### 3. Clone and Build Workspace
 
 ```bash
-sudo apt install -y gazebo11 libgazebo11-dev # adapt version if needed
-sudo apt install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers ros-jazzy-gazebo-plugins
-```
-
-Install Python packages that some nodes may need:
-
-```bash
-python3 -m pip install --user -U setuptools colcon-common-extensions empy toml
-```
-
-Note: Replace `gazebo11` and ROS control packages with the versions compatible with your ROS distro if necessary.
-
----
-
-**4) Clone this repository & workspace structure**
-
-If you haven't already cloned this repo, do it into a workspace `ros2/ballbot_ws` with a `src` folder. Example recommended structure:
-
-```bash
-# from your home directory
+# Create workspace
 mkdir -p ~/ros2/ballbot_ws/src
 cd ~/ros2/ballbot_ws/src
 
-# clone the repo (replace URL with your repo's URL)
-git clone https://github.com/mrrox1337/ballbot.git
+# Clone repository (replace with your repository URL)
+git clone https://github.com/mrrox1337/ballbot.git .
 
+# Install package dependencies
 cd ~/ros2/ballbot_ws
-```
-
-If this repository already lives in `~/ros2/ballbot_ws/src/` then proceed from the workspace root: `cd ~/ros2/ballbot_ws`.
-
----
-
-**5) Install package dependencies with `rosdep` and build**
-
-From the workspace root:
-
-```bash
-cd ~/ros2/ballbot_ws
-
-# Install system dependencies for packages in src (ignores packages that are in-source)
 rosdep install --from-paths src --ignore-src -r -y
 
 # Build workspace
 colcon build --symlink-install
 
-# Source overlay (each new terminal/session)
+# Source workspace
 source install/setup.bash
 ```
 
-Tips:
+### 4. Add to Shell Configuration (Optional)
 
--   If a `rosdep` rule fails, inspect the package `package.xml` for missing keys or manually install missing system packages shown by `rosdep`.
--   For iterative development, use `colcon build --symlink-install --packages-select <pkg>` to speed builds.
+```bash
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "source ~/ros2/ballbot_ws/install/setup.bash" >> ~/.bashrc
+```
 
 ---
 
-**6) Per-package launch instructions**
-Open a terminal, source the ROS distro and the workspace overlay before running any launch or node commands:
+## Quick Start
+
+### Launch Everything with Default Settings
+
+The simplest way to run the complete system:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
+# Terminal 1: Launch simulation with SLAM
+ros2 launch ballbot_bringup bringup.launch.py slam:=true teleop:=true
+
+# Drive around to create a map, then save it
+ros2 run nav2_map_server map_saver_cli -f ~/my_map
 ```
 
-Below are the per-package commands. Replace paths or filenames if your workspace is in a different location.
+### Launch Navigation with Pre-built Map
 
--   `ballbot_bringup`
+```bash
+# Terminal 1: Launch simulation with navigation
+ros2 launch ballbot_bringup bringup.launch.py navigation:=true
 
-    -   Launch (bringup):
-
-    ```bash
-    ros2 launch ballbot_bringup bringup.launch.py
-    ```
-
-    -   Purpose: top-level bringup, loads configs, may start controllers and other orchestration.
-
--   `ballbot_control`
-
-    -   Launch controller manager and controllers:
-
-    ```bash
-    ros2 launch ballbot_control ballbot_control.launch.py
-    ```
-
-    -   Purpose: starts the controller manager and controller configurations defined in `config/ballbot_controllers.yaml`.
-
--   `ballbot_description`
-
-    -   Display robot model in RViz / spawn description:
-
-    ```bash
-    ros2 launch ballbot_description display.launch.py
-    ```
-
-    -   Purpose: publish `robot_description` TF and optionally start RViz with the provided configuration.
-
--   `ballbot_gazebo`
-
-    -   Start Gazebo world and spawn the robot (if included in the launch):
-
-    ```bash
-    ros2 launch ballbot_gazebo ballbot_gazebo.launch.py
-    ```
-
-    -   Purpose: integrate the robot model with Gazebo and any plugins required for simulation.
-
--   `ballbot_teleop`
-
-    -   Teleoperation node (run node directly):
-
-    ```bash
-    ros2 run ballbot_teleop teleop_flap_node
-    ```
-
-    -   Or, if you have a launch available (none provided in the package), use `ros2 launch` accordingly.
-
--   `ros2_assessment_world`
-
-    -   Spawn the assessment world:
-
-    ```bash
-    ros2 launch ros2_assessment_world assessment_world.launch.py
-    ```
-
-    -   Complete assessment scenario launch:
-
-    ```bash
-    ros2 launch ros2_assessment_world assessment_complete.launch.py
-    ```
-
-    -   Spawn spheres helper (if you need to spawn additional objects):
-
-    ```bash
-    ros2 launch ros2_assessment_world spawn_spheres.launch.py
-    ```
+# Terminal 2: After setting 2D Pose Estimate in RViz, run commander
+ros2 run ballbot_nav2 simple_commander
+```
 
 ---
 
-**7) Full-project bringup (recommended sequences)**
+## Package Documentation
 
-Option A — Single bringup
+### ballbot_description
 
--   If `ballbot_bringup` includes orchestration for Gazebo, controllers and teleop, the simplest bringup is:
+**Purpose**: Defines the robot's physical structure, visual appearance, and sensor configuration.
 
-```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
-ros2 launch ballbot_bringup bringup.launch.py
-```
+**Key Files**:
 
-Option B — Manual staged bringup (recommended for debug)
+-   `urdf/ballbot.urdf.xacro` - Main robot description file
+-   `rviz/rviz.rviz` - RViz visualization configuration
+-   `launch/display.launch.py` - Standalone visualization launch
 
-1. Start Gazebo with the world (in one terminal):
+**Topics Published**:
 
-```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
-ros2 launch ballbot_gazebo ballbot_gazebo.launch.py
-```
+-   `/robot_description` (std_msgs/String) - URDF as string parameter
 
-2. Launch the robot description and RViz (new terminal):
+**Standalone Usage**:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
+# View robot in RViz (no simulation)
 ros2 launch ballbot_description display.launch.py
 ```
 
-3. Start controllers (new terminal):
+---
+
+### ballbot_gazebo
+
+**Purpose**: Integrates the robot with Gazebo Harmonic simulation environment.
+
+**Key Files**:
+
+-   `launch/ballbot_gazebo.launch.py` - Simulation launch file
+
+**Launch Arguments**:
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `world_type` | `empty` | World to load: `empty` or `assessment` |
+| `use_sim_time` | `true` | Use simulation clock |
+
+**Topics Bridged**:
+
+-   `/clock` - Simulation time
+-   `/scan` - LIDAR data (bridged separately in SLAM/Nav launches)
+
+**Standalone Usage**:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
-ros2 launch ballbot_control ballbot_control.launch.py
+# Launch with empty world
+ros2 launch ballbot_gazebo ballbot_gazebo.launch.py world_type:=empty
+
+# Launch with assessment world
+ros2 launch ballbot_gazebo ballbot_gazebo.launch.py world_type:=assessment
 ```
 
-4. Start teleop or operator nodes (new terminal):
+---
+
+### ballbot_control
+
+**Purpose**: Configures ros2_control for differential drive and flap position control.
+
+**Key Files**:
+
+-   `config/ballbot_controllers.yaml` - Controller parameters
+-   `launch/ballbot_control.launch.py` - Controller spawning launch
+
+**Controllers**:
+| Controller | Type | Interface |
+|------------|------|-----------|
+| `joint_state_broadcaster` | JointStateBroadcaster | State publishing |
+| `diff_drive_base_controller` | DiffDriveController | Velocity command |
+| `flap_controller` | ForwardCommandController | Position command |
+
+**Command Topics**:
+
+-   `/diff_drive_base_controller/cmd_vel` (geometry_msgs/TwistStamped) - Drive commands
+-   `/flap_controller/commands` (std_msgs/Float64MultiArray) - Flap positions
+
+**State Topics**:
+
+-   `/joint_states` (sensor_msgs/JointState) - All joint states
+-   `/odom` (nav_msgs/Odometry) - Wheel odometry
+
+**Standalone Usage**:
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source ~/ros2/ballbot_ws/install/setup.bash
+# Launch Gazebo + Controllers
+ros2 launch ballbot_control ballbot_control.launch.py world_type:=assessment
+```
+
+---
+
+### ballbot_teleop
+
+**Purpose**: Provides keyboard-based teleoperation for driving and flap control.
+
+**Key Files**:
+
+-   `ballbot_teleop/teleop_flap_node.py` - Main teleoperation node
+
+**Controls**:
+
+```
+Moving:
+   w
+ a s d
+   x
+
+q/z : increase/decrease max speeds by 10%
+w/x : linear movement (forward/back)
+a/d : angular movement (left/right)
+s   : force stop
+
+Flap Controls:
+1 : Reset Flaps (0.0, 0.0)
+2 : Open Flaps  (-0.5, 0.5)
+3 : Close/Grip  (-1.57, 1.57)
+
+CTRL-C to quit
+```
+
+**Standalone Usage**:
+
+```bash
+# Run teleop node (requires controllers to be running)
 ros2 run ballbot_teleop teleop_flap_node
 ```
 
-5. If running the assessment world, start it and spawn objects as needed:
+---
+
+### ballbot_slam
+
+**Purpose**: Performs simultaneous localization and mapping using slam_toolbox.
+
+**Key Files**:
+
+-   `config/slam_async_config.yaml` - SLAM parameters
+-   `launch/online_async_slam.launch.py` - Complete SLAM launch
+-   `maps/assessment_map.yaml` - Pre-built assessment world map
+-   `maps/assessment_map.pgm` - Map image file
+
+**SLAM Configuration**:
+
+-   **Mode**: Asynchronous online SLAM
+-   **Resolution**: 0.05m per pixel
+-   **Laser Range**: 0.1m to 10.0m
+-   **Map Update Interval**: 2.0 seconds
+
+**Topics**:
+
+-   `/map` (nav_msgs/OccupancyGrid) - Generated map
+-   `/scan` (sensor_msgs/LaserScan) - LIDAR input
+
+**Standalone Usage**:
 
 ```bash
-ros2 launch ros2_assessment_world assessment_world.launch.py
-ros2 launch ros2_assessment_world spawn_spheres.launch.py
+# Launch complete SLAM system
+ros2 launch ballbot_slam online_async_slam.launch.py world_type:=assessment
+
+# Save the map after exploring
+ros2 run nav2_map_server map_saver_cli -f ~/ros2/ballbot_ws/src/ballbot_slam/maps/my_map
 ```
 
-This staged approach helps isolate failures (Gazebo, TF, controllers, teleop).
+---
+
+### ballbot_nav2
+
+**Purpose**: Provides autonomous navigation using the Nav2 stack.
+
+**Key Files**:
+
+-   `config/ballbot_nav2_params.yaml` - Complete Nav2 parameters
+-   `launch/navigation.launch.py` - Navigation stack launch
+-   `ballbot_nav2/cmd_vel_relay.py` - Twist to TwistStamped converter
+-   `ballbot_nav2/simple_commander.py` - Example goal sender
+
+**Nav2 Components**:
+
+-   **Localization**: AMCL (Adaptive Monte Carlo Localization)
+-   **Planning**: NavFn global planner
+-   **Control**: DWB local planner
+-   **Recovery**: Spin, backup, wait behaviors
+
+**Robot Footprint**:
+
+```
+[[1.0, 0.35], [1.0, -0.35], [-0.27, -0.35], [-0.27, 0.35]]
+```
+
+This accounts for the extended arms and flaps.
+
+**Important**: After launching navigation, you **must** set a 2D Pose Estimate in RViz before the robot can navigate. The AMCL localization needs an initial pose to start.
+
+**Standalone Usage**:
+
+```bash
+# Terminal 1: Launch navigation
+ros2 launch ballbot_nav2 navigation.launch.py
+
+# In RViz: Click "2D Pose Estimate" and set robot's approximate position
+
+# Terminal 2: Send navigation goal (after setting pose estimate)
+ros2 run ballbot_nav2 simple_commander
+```
 
 ---
 
-**8) Troubleshooting & FAQ**
+### ballbot_bringup
 
--   Q: `ros2 launch` fails with package not found
--   A: Ensure you sourced both `/opt/ros/jazzy/setup.bash` and `~/ros2/ballbot_ws/install/setup.bash`. Check that `colcon build` succeeded. Run `ros2 pkg list | grep <package_name>` to confirm package visibility.
+**Purpose**: Unified launch system for all robot configurations.
 
--   Q: `rosdep install` cannot find a system dependency
--   A: Inspect the `rosdep` output. Sometimes the `rosdep` key has no mapping for Ubuntu 24.04. You may need to manually install the missing system package or provide a custom `rosdep` mapping.
+**Key Files**:
 
--   Q: Controller doesn't activate or robot doesn't move in Gazebo
--   A: Confirm controllers are loaded in `controller_manager`: `ros2 service call /controller_manager/list_controllers std_srvs/srv/Trigger` or inspect `ros2 topic` and `ros2 node list`. Check `robot_state_publisher` and joint names in URDF match controller configuration.
+-   `launch/bringup.launch.py` - Master launch file
 
--   Q: Gazebo shows no model or spawns fail
--   A: Ensure `robot_description` parameter is being provided and `spawn_entity` is called with correct model SDF/URDF. Check the Gazebo console for plugin errors.
+**Launch Arguments**:
+
+| Argument       | Default      | Description                            |
+| -------------- | ------------ | -------------------------------------- |
+| `world`        | `assessment` | World to load: `assessment` or `empty` |
+| `teleop`       | `false`      | Launch teleoperation in new terminal   |
+| `slam`         | `false`      | Enable SLAM mapping                    |
+| `navigation`   | `false`      | Enable Nav2 navigation stack           |
+| `use_sim_time` | `true`       | Use simulation time                    |
+
+**Usage Examples**:
+
+```bash
+# Basic simulation (just robot in assessment world)
+ros2 launch ballbot_bringup bringup.launch.py
+
+# Simulation with teleoperation
+ros2 launch ballbot_bringup bringup.launch.py teleop:=true
+
+# SLAM mapping session
+ros2 launch ballbot_bringup bringup.launch.py slam:=true teleop:=true
+
+# Autonomous navigation (remember to set 2D Pose Estimate!)
+ros2 launch ballbot_bringup bringup.launch.py navigation:=true
+
+# Empty world for testing
+ros2 launch ballbot_bringup bringup.launch.py world:=empty teleop:=true
+```
+
+**Important Notes**:
+
+1. `slam` and `navigation` are mutually exclusive - don't enable both
+2. When using `navigation`, manually set 2D Pose Estimate in RViz before sending goals
+3. The `simple_commander` node should be run manually after navigation is ready
 
 ---
 
-**9) Development tips**
+### ballbot_imu (Experimental)
 
--   Use `colcon build --symlink-install` during development to avoid re-copying files.
--   Reload your terminal environment with `source ~/ros2/ballbot_ws/install/setup.bash` after each build.
--   Use `ros2 topic echo`, `ros2 node list`, `ros2 service list`, and `ros2 run rqt_graph rqt_graph` to inspect the system.
+**Status**: ⚠️ **Experimental - Not integrated into main system**
+
+**Purpose**: Attempted integration of IMU sensor fusion for improved localization.
+
+This package was developed to emulate a BNO055 absolute orientation sensor and fuse IMU data with wheel odometry for more robust localization. While the sensor simulation works, the full integration with the localization stack was not completed.
+
+**What Works**:
+
+-   IMU sensor plugin in URDF
+-   Gazebo IMU bridge
+-   IMU processor node emulating BNO055 characteristics
+-   Complementary filter for sensor fusion
+
+**What's Not Integrated**:
+
+-   robot_localization EKF fusion
+-   Integration with SLAM or Nav2
+
+**For Future Development**:
+The `ballbot_imu` package can serve as a starting point for:
+
+-   Implementing robot_localization with IMU + wheel odometry fusion
+-   Adding IMU-based orientation estimation for rough terrain
+-   Sensor fusion research and experimentation
 
 ---
 
-**10) Contributing**
+## Assessment World
 
--   If you add packages or change launch names, update this `README.md` with the new commands.
--   Create PRs against the `main` branch with small, focused changes and a brief description of the behaviour change.
+The `ros2_assessment_world` package provides the PDE4430 assessment environment.
+
+### Environment Specifications
+
+-   **Arena Size**: 8m × 8m enclosed area
+-   **Wall Height**: 2m
+-   **Pen Areas**: Two collection zones at coordinates (±0.6, 3.3)
+-   **Obstacles**: 9 cylindrical obstacles of varying sizes (0.2m - 0.5m diameter)
+
+### Spheres
+
+Three colored spheres spawn at random locations:
+
+-   **Red (Small)**: 0.1m radius, 0.3kg
+-   **Green (Medium)**: 0.2m radius, 0.6kg
+-   **Blue (Large)**: 0.3m radius, 1.0kg
+
+### Assessment Task
+
+1. Navigate the environment while avoiding obstacles
+2. Locate and collect the three spheres
+3. Transport spheres to the pen areas using the flap mechanism
+
+### Launching Assessment World
+
+```bash
+# Via bringup (recommended)
+ros2 launch ballbot_bringup bringup.launch.py world:=assessment
+
+# Standalone (world only, no robot)
+ros2 launch assessment_world assessment_complete.launch.py
+```
 
 ---
 
-**License**
+## Usage Examples
 
--   Copyright 2025 Aman Mishra
--   Check each package's `LICENSE` file for licensing details. This repo contains multiple packages; each package may include its own license file.
+### Example 1: First-Time Setup and Testing
+
+```bash
+# Terminal 1: Launch basic simulation
+ros2 launch ballbot_bringup bringup.launch.py teleop:=true
+
+# Use WASD keys to drive, 1/2/3 to control flaps
+# Press Ctrl+C to exit
+```
+
+### Example 2: Creating a New Map
+
+```bash
+# Terminal 1: Launch SLAM
+ros2 launch ballbot_bringup bringup.launch.py slam:=true teleop:=true
+
+# Drive around the entire environment to build a complete map
+# Watch the map build in RViz
+
+# Terminal 2: Save the map when done
+ros2 run nav2_map_server map_saver_cli -f ~/ros2/ballbot_ws/src/ballbot_slam/maps/new_map
+
+# Update ballbot_nav2/config/ballbot_nav2_params.yaml with new map path if needed
+```
+
+### Example 3: Autonomous Navigation
+
+```bash
+# Terminal 1: Launch navigation
+ros2 launch ballbot_bringup bringup.launch.py navigation:=true
+
+# In RViz:
+# 1. Click "2D Pose Estimate" button
+# 2. Click and drag on the map where the robot actually is
+# 3. Wait for AMCL particle cloud to converge
+
+# Terminal 2: Send a navigation goal
+ros2 run ballbot_nav2 simple_commander
+
+# Or use RViz "2D Goal Pose" button to send goals interactively
+```
+
+### Example 4: Manual Navigation Goal via CLI
+
+```bash
+# After navigation is running and localized:
+ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+  "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 2.0, y: 1.0, z: 0.0}, orientation: {w: 1.0}}}}"
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Gazebo doesn't start or crashes
+
+```bash
+# Check Gazebo installation
+gz sim --version
+
+# Try with OGRE rendering (more compatible)
+# This is already set in the launch files for assessment world
+```
+
+#### Robot doesn't move with teleop
+
+1. Ensure controllers are loaded:
+    ```bash
+    ros2 control list_controllers
+    ```
+2. Check that topics are connected:
+    ```bash
+    ros2 topic list | grep cmd_vel
+    ros2 topic echo /diff_drive_base_controller/cmd_vel
+    ```
+
+#### SLAM map not building
+
+1. Verify LIDAR data:
+    ```bash
+    ros2 topic echo /scan --once
+    ```
+2. Check TF tree:
+    ```bash
+    ros2 run tf2_tools view_frames
+    ```
+
+#### Navigation fails to start
+
+1. Ensure map file exists at the configured path
+2. Check lifecycle states:
+    ```bash
+    ros2 lifecycle list /map_server
+    ros2 lifecycle list /amcl
+    ```
+
+#### Robot spins or behaves erratically during navigation
+
+1. **Always set 2D Pose Estimate first** - AMCL needs initial localization
+2. Check that the map matches the current world
+3. Verify odometry is working:
+    ```bash
+    ros2 topic echo /odom
+    ```
+
+### Useful Debugging Commands
+
+```bash
+# List all active nodes
+ros2 node list
+
+# List all topics
+ros2 topic list
+
+# Check topic frequency
+ros2 topic hz /scan
+
+# View TF tree
+ros2 run tf2_tools view_frames
+
+# Monitor transforms
+ros2 run tf2_ros tf2_echo map base_footprint
+
+# Check controller status
+ros2 control list_controllers
+ros2 control list_hardware_interfaces
+```
+
+---
+
+## Contributing
+
+### Development Workflow
+
+1. Create a feature branch
+2. Make changes with `--symlink-install` for faster iteration:
+    ```bash
+    colcon build --symlink-install --packages-select <package_name>
+    ```
+3. Test thoroughly
+4. Update documentation
+5. Submit pull request
+
+### Code Style
+
+-   Python: Follow PEP 8, use type hints where practical
+-   Launch files: Use Python launch format
+-   YAML: Use consistent 4-space indentation
+
+### Adding New Packages
+
+1. Create package with `ament_python` build type
+2. Add appropriate dependencies to `package.xml`
+3. Include launch files and configs in `setup.py` data_files
+4. Update this README with package documentation
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0. See individual package LICENSE files for details.
+
+---
+
+## Acknowledgments
+
+-   ROS 2 Community
+-   Gazebo Development Team
+-   Nav2 Project Contributors
+-   slam_toolbox Developers
+-   Middlesex University Dubai - PDE4430 Robotics Course
+
+---
+
+**Last Updated**: December 2025  
+**ROS 2 Version**: Jazzy Jalisco  
+**Gazebo Version**: Harmonic

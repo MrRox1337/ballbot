@@ -9,11 +9,15 @@ Launch Arguments:
     teleop (bool): Launch teleoperation node in a new terminal (default: false)
     slam (bool): Enable SLAM mapping mode (default: false)
     navigation (bool): Enable Nav2 navigation stack (default: false)
+    spawn_balls (bool): Spawn balls in the assessment world (default: false)
     use_sim_time (bool): Use simulation time (default: true)
 
 Usage Examples:
     # Basic simulation with assessment world
     ros2 launch ballbot_bringup bringup.launch.py
+
+    # Simulation with balls spawned
+    ros2 launch ballbot_bringup bringup.launch.py spawn_balls:=true
 
     # Simulation with teleoperation
     ros2 launch ballbot_bringup bringup.launch.py teleop:=true
@@ -70,6 +74,7 @@ def generate_launch_description():
     pkg_ballbot_slam = FindPackageShare('ballbot_slam')
     pkg_ballbot_nav2 = FindPackageShare('ballbot_nav2')
     pkg_nav2_bringup = FindPackageShare('nav2_bringup')
+    pkg_assessment_world = FindPackageShare('assessment_world')
 
     # ==========================================================================
     # LAUNCH ARGUMENTS
@@ -102,6 +107,13 @@ def generate_launch_description():
         default_value='false',
         description='Enable Nav2 navigation stack'
     )
+
+    # Spawn balls argument
+    spawn_balls_arg = DeclareLaunchArgument(
+        'spawn_balls',
+        default_value='false',
+        description='Spawn balls in the assessment world (only works with world:=assessment)'
+    )
     
     # Simulation time argument
     use_sim_time_arg = DeclareLaunchArgument(
@@ -115,6 +127,7 @@ def generate_launch_description():
     teleop = LaunchConfiguration('teleop')
     slam = LaunchConfiguration('slam')
     navigation = LaunchConfiguration('navigation')
+    spawn_balls = LaunchConfiguration('spawn_balls')
     use_sim_time = LaunchConfiguration('use_sim_time')
 
     # ==========================================================================
@@ -145,6 +158,25 @@ def generate_launch_description():
         condition=UnlessCondition(
             PythonExpression(["'", slam, "' == 'true' or '", navigation, "' == 'true'"])
         )
+    )
+
+    # ==========================================================================
+    # SPAWN BALLS
+    # Optionally spawn balls in the assessment world
+    # ==========================================================================
+    spawn_spheres_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([pkg_assessment_world, 'launch', 'spawn_spheres.launch.py'])
+        ),
+        condition=IfCondition(
+            PythonExpression(["'", spawn_balls, "' == 'true' and '", world, "' == 'assessment'"])
+        )
+    )
+
+    # Delay spawning to ensure Gazebo is fully loaded
+    delayed_spawn_spheres = TimerAction(
+        period=10.0,
+        actions=[spawn_spheres_launch]
     )
 
     # ==========================================================================
@@ -420,6 +452,11 @@ def generate_launch_description():
         condition=IfCondition(teleop)
     )
 
+    log_spawn_balls = LogInfo(
+        msg=['Spawning balls enabled'],
+        condition=IfCondition(spawn_balls)
+    )
+
     # ==========================================================================
     # LAUNCH DESCRIPTION
     # ==========================================================================
@@ -429,6 +466,7 @@ def generate_launch_description():
         teleop_arg,
         slam_arg,
         navigation_arg,
+        spawn_balls_arg,
         use_sim_time_arg,
         
         # Log messages
@@ -437,11 +475,15 @@ def generate_launch_description():
         log_mode_slam,
         log_mode_nav,
         log_teleop,
+        log_spawn_balls,
         
         # Base simulation (when not in SLAM or Navigation mode)
         control_launch,
         lidar_bridge,
         rviz_node,
+        
+        # Spawning balls (delayed)
+        delayed_spawn_spheres,
         
         # Teleoperation (when enabled and not in SLAM mode)
         delayed_teleop,

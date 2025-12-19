@@ -134,24 +134,7 @@ ballbot_ws/src/
 
 ## Installation
 
-### 1. Install ROS 2 Jazzy
-
-```bash
-# Add ROS 2 GPG key
-sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
-    -o /usr/share/keyrings/ros-archive-keyring.gpg
-
-# Add repository
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
-    http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | \
-    sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
-
-# Install ROS 2 Desktop
-sudo apt update
-sudo apt install -y ros-jazzy-desktop python3-argcomplete
-```
-
-### 2. Install Additional Dependencies
+### 1. Install Additional Dependencies
 
 ```bash
 # Development tools
@@ -175,7 +158,7 @@ sudo rosdep init || true
 rosdep update
 ```
 
-### 3. Clone and Build Workspace
+### 2. Clone and Build Workspace
 
 ```bash
 # Create workspace
@@ -183,7 +166,7 @@ mkdir -p ~/ros2/ballbot_ws/src
 cd ~/ros2/ballbot_ws/src
 
 # Clone repository (replace with your repository URL)
-git clone https://github.com/mrrox1337/ballbot.git .
+git clone [https://github.com/mrrox1337/ballbot.git](https://github.com/mrrox1337/ballbot.git) .
 
 # Install package dependencies
 cd ~/ros2/ballbot_ws
@@ -196,7 +179,7 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
-### 4. Add to Shell Configuration (Optional)
+### 3. Add to Shell Configuration (Optional)
 
 ```bash
 echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
@@ -453,6 +436,7 @@ ros2 run ballbot_nav2 simple_commander
 | `teleop`       | `false`      | Launch teleoperation in new terminal   |
 | `slam`         | `false`      | Enable SLAM mapping                    |
 | `navigation`   | `false`      | Enable Nav2 navigation stack           |
+| `spawn_balls`  | `false`      | Spawn balls in assessment world        |
 | `use_sim_time` | `true`       | Use simulation time                    |
 
 **Usage Examples**:
@@ -460,6 +444,9 @@ ros2 run ballbot_nav2 simple_commander
 ```bash
 # Basic simulation (just robot in assessment world)
 ros2 launch ballbot_bringup bringup.launch.py
+
+# Simulation with balls spawned (Assessment world only)
+ros2 launch ballbot_bringup bringup.launch.py spawn_balls:=true
 
 # Simulation with teleoperation
 ros2 launch ballbot_bringup bringup.launch.py teleop:=true
@@ -553,8 +540,8 @@ ros2 launch assessment_world assessment_complete.launch.py
 ### Example 1: First-Time Setup and Testing
 
 ```bash
-# Terminal 1: Launch basic simulation
-ros2 launch ballbot_bringup bringup.launch.py teleop:=true
+# Terminal 1: Launch basic simulation with balls spawned
+ros2 launch ballbot_bringup bringup.launch.py spawn_balls:=true teleop:=true
 
 # Use WASD keys to drive, 1/2/3 to control flaps
 # Press Ctrl+C to exit

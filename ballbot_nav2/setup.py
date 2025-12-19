@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'cmd_vel_relay = ballbot_nav2.cmd_vel_relay:main',
             'simple_commander = ballbot_nav2.simple_commander:main',
+            'waypoint_commander = ballbot_nav2.waypoint_commander:main',
         ],
     },
 )

@@ -1,3 +1,5 @@
+"""Setup file for ballbot_bringup package."""
+
 import os
 from glob import glob
 from setuptools import find_packages, setup
@@ -6,7 +8,7 @@ package_name = 'ballbot_bringup'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='1.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -19,7 +21,7 @@ setup(
     zip_safe=True,
     maintainer='Aman Mishra',
     maintainer_email='amanrox97@gmail.com',
-    description='Bringup package for the Ballbot robot.',
+    description='Unified bringup package for the Ballbot robot with configurable launch modes.',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={

@@ -43,6 +43,8 @@ Visualization Manager:
           Value: true
         castor_wheel:
           Value: true
+        imu_link:
+          Value: true
         left_arm:
           Value: true
         left_flap:
@@ -50,8 +52,6 @@ Visualization Manager:
         left_wheel:
           Value: true
         lidar_link:
-          Value: true
-        map:
           Value: true
         odom:
           Value: true
@@ -69,25 +69,26 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          odom:
-            base_footprint:
-              base_link:
-                castor_wheel:
+        odom:
+          base_footprint:
+            base_link:
+              castor_wheel:
+                {}
+              imu_link:
+                {}
+              left_arm:
+                left_flap:
                   {}
-                left_arm:
-                  left_flap:
-                    {}
-                left_wheel:
+              left_wheel:
+                {}
+              right_arm:
+                right_flap:
                   {}
-                right_arm:
-                  right_flap:
-                    {}
-                right_wheel:
+              right_wheel:
+                {}
+              vertical_pole:
+                lidar_link:
                   {}
-                vertical_pole:
-                  lidar_link:
-                    {}
       Update Interval: 0
       Value: true
     - Alpha: 0.8500000238418579
@@ -118,6 +119,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         castor_wheel:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        imu_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -248,7 +254,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: map
+    Fixed Frame: odom
     Frame Rate: 30
   Name: root
   Tools:

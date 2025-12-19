@@ -1,12 +1,16 @@
-# Ballbot — ROS 2 Jazzy
+# Ballbot — ROS 2 Jazzy - PDE4430 Mobile Robotics
 
 A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, LIDAR-based SLAM, and autonomous navigation capabilities.
 
 **Author**: Aman Mishra  
-**Email**: amanrox97@gmail.com  
+**MISIS**: M00983641
+**Email**: am3971@live.mdx.ac.uk
 **License**: Apache-2.0  
 **ROS Distribution**: Jazzy  
 **Simulator**: Gazebo Harmonic
+**Lecturer**: Dr. Sameer Kishore
+**Program** MSc Robotics
+**University**: Middlesex University Dubai
 
 ---
 

@@ -26,13 +26,13 @@ class SimpleCommander(Node):
 
         self.get_logger().info('Nav2 is active. Preparing to send goal.')
 
-        # Define the goal pose (Example: 1 meter forward)
+        # Define the goal pose 1 meter forward
         goal_pose = PoseStamped()
         goal_pose.header.frame_id = 'map'
         goal_pose.header.stamp = self.navigator.get_clock().now().to_msg()
         goal_pose.pose.position.x = 1.0
         goal_pose.pose.position.y = 0.0
-        goal_pose.pose.orientation.w = 1.0
+        goal_pose.pose.orientation.w = 1.5
 
         # Send the robot to the goal
         self.get_logger().info('Sending goal request...')
@@ -61,8 +61,6 @@ class SimpleCommander(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = SimpleCommander()
-    # No need for spin() here as the logic is procedural in __init__
-    # for a one-off mission. For a more robust app, use a timer or state machine.
     node.destroy_node()
     rclpy.shutdown()
 

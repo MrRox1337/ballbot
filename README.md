@@ -9,7 +9,7 @@ A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, L
 **ROS Distribution**: Jazzy  
 **Simulator**: Gazebo Harmonic
 **Lecturer**: Dr. Sameer Kishore
-**Program** MSc Robotics
+**Program**: MSc Robotics
 **University**: Middlesex University Dubai
 
 ---

@@ -32,6 +32,8 @@ A comprehensive mobile robot platform for ROS 2 Jazzy with differential drive, L
     - [ballbot_nav2](#ballbot_nav2)
     - [ballbot_bringup](#ballbot_bringup)
     - [ballbot_imu (Experimental)](#ballbot_imu-experimental)
+    - [node_graphs](#node_graphs)
+    - [tf2_frames](#tf2_frames)
 8. [Assessment World](#assessment-world)
 9. [Usage Examples](#usage-examples)
 10. [Scripted Waypoint Navigation](#scripted-waypoint-navigation)
@@ -506,6 +508,18 @@ The `ballbot_imu` package can serve as a starting point for:
 -   Implementing robot_localization with IMU + wheel odometry fusion
 -   Adding IMU-based orientation estimation for rough terrain
 -   Sensor fusion research and experimentation
+
+---
+
+### node_graphs
+
+Refer to the [node_graphs](https://github.com/MrRox1337/ballbot/tree/main/node_graphs) sub-folder for detailed RQT visualization while teleoperating, mapping, and navigating.
+
+---
+
+### tf2_frames
+
+Refer to the [tf2_frames](https://github.com/MrRox1337/ballbot/tree/main/tf2_frames) sub-folder for detailed robot transform visualization while navigating notice how the robot listens to the `/map` topic to the `/odom` and then the pose information is distributed to the rest of the robot body.
 
 ---
 

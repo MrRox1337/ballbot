@@ -921,7 +921,9 @@ This project is licensed under the Apache License 2.0. See individual package LI
 -   Gazebo Development Team
 -   Nav2 Project Contributors
 -   slam_toolbox Developers
--   Middlesex University Dubai - PDE4430 Robotics Course
+-   Dr. Sameer Kishore
+-   Google Gemini
+-   Anthropic Claude
 
 ---
 
